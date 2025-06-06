@@ -33,6 +33,21 @@ def charger_liens_avec_id(base_dir: str) -> dict:
     return id_url_map
 
 
+def charger_liens_avec_id_fichier(fichier: str) -> dict:
+    """Charge le mapping ID -> URL depuis un fichier texte fourni."""
+    id_url_map = {}
+    if not os.path.exists(fichier):
+        print(f"Fichier introuvable : {fichier}")
+        return id_url_map
+    with open(fichier, "r", encoding="utf-8") as f:
+        for line in f:
+            parts = line.strip().split(" ", 1)
+            if len(parts) == 2:
+                identifiant, url = parts
+                id_url_map[identifiant.upper()] = url
+    return id_url_map
+
+
 def extraire_ids_depuis_input(input_str: str) -> list:
     try:
         start_id, end_id = input_str.upper().split("-")
