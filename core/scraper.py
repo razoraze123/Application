@@ -1,75 +1,37 @@
 import os
 import re
 import json
+import time
+import random
 import pandas as pd
 from bs4 import BeautifulSoup
-import unicodedata
-import time, random
-
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
-# === CONFIGURATION ===
-base_dir = r"C:\Users\Lamine\Desktop\woocommerce\code\CODE POUR BOB"
-chrome_driver_path = os.path.join(base_dir, r"../chromdrivers 137/chromedriver-win64/chromedriver.exe")
-chrome_binary_path = os.path.join(base_dir, r"../chromdrivers 137/chrome-win64/chrome.exe")
+from .utils import clean_name, clean_filename
 
-fiche_dir = os.path.join(base_dir, "optimisation_fiches")
-liens_id_txt = os.path.join(base_dir, "liens_avec_id.txt")
-chemin_liens_images = os.path.join(base_dir, "liens_images_details.xlsx")
-fichier_excel = os.path.join(base_dir, "woocommerce_mix.xlsx")
 
-save_directory = os.path.join(base_dir, "fiche concurrents")
-recap_excel_path = os.path.join(base_dir, "recap_concurrents.xlsx")
-
-# === UTILS ===
-def clean_name(name):
-    nfkd = unicodedata.normalize('NFKD', name)
-    only_ascii = nfkd.encode('ASCII', 'ignore').decode('ASCII')
-    return only_ascii.lower().replace('-', ' ').strip()
-
-def clean_filename(name):
-    nfkd = unicodedata.normalize('NFKD', name)
-    only_ascii = nfkd.encode('ASCII', 'ignore').decode('ASCII')
-    safe = re.sub(r"[^a-zA-Z0-9\- ]", "", only_ascii)
-    safe = safe.replace(" ", "-").lower()
-    return safe
-
-def charger_liens_avec_id():
-    id_url_map = {}
-    with open(liens_id_txt, "r", encoding="utf-8") as f:
-        for line in f:
-            parts = line.strip().split(" ", 1)
-            if len(parts) == 2:
-                identifiant, url = parts
-                id_url_map[identifiant.upper()] = url
-    return id_url_map
-
-def extraire_ids_depuis_input(input_str):
-    try:
-        start_id, end_id = input_str.upper().split("-")
-        start_num = int(start_id[1:])
-        end_num = int(end_id[1:])
-        return [f"A{i}" for i in range(start_num, end_num + 1)]
-    except:
-        print("⚠️ Format invalide. Utilise le format A1-A5.")
-        return []
-
-# === SCRAPING PRODUITS (VARIANTES) ===
-def scrap_produits_par_ids(id_url_map, ids_selectionnes):
+def _get_driver(headless: bool = False) -> webdriver.Chrome:
     options = webdriver.ChromeOptions()
-    options.binary_location = chrome_binary_path
-    options.add_argument("--headless")
+    if headless:
+        options.add_argument("--headless")
     options.add_argument('--disable-blink-features=AutomationControlled')
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
-    service = Service(executable_path=chrome_driver_path)
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
-    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-        "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-    })
+    driver.execute_cdp_cmd(
+        "Page.addScriptToEvaluateOnNewDocument",
+        {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"}
+    )
+    return driver
 
+
+def scrap_produits_par_ids(id_url_map: dict, ids_selectionnes: list, base_dir: str) -> None:
+    fichier_excel = os.path.join(base_dir, "woocommerce_mix.xlsx")
+    driver = _get_driver(headless=True)
     woocommerce_rows = []
 
     print(f"\n🚀 Début du scraping de {len(ids_selectionnes)} liens...\n")
@@ -98,7 +60,7 @@ def scrap_produits_par_ids(id_url_map, ids_selectionnes):
                         if match:
                             product_price = match.group(1).replace(",", ".")
                         break
-                except:
+                except Exception:
                     continue
 
             variant_labels = driver.find_elements(By.CSS_SELECTOR, "label.color-swatch")
@@ -109,7 +71,7 @@ def scrap_produits_par_ids(id_url_map, ids_selectionnes):
                 try:
                     name = label.find_element(By.CSS_SELECTOR, "span.sr-only").text.strip()
                     variant_names.append(name)
-                except:
+                except Exception:
                     continue
 
             nom_dossier = clean_name(product_name).replace(" ", "-")
@@ -162,19 +124,11 @@ def scrap_produits_par_ids(id_url_map, ids_selectionnes):
     df.to_excel(fichier_excel, index=False)
     print(f"\n📁 Données sauvegardées dans : {fichier_excel}")
 
-# === SCRAPING FICHES CONCURRENTS ===
-def scrap_fiches_concurrents(id_url_map, ids_selectionnes):
-    service = Service(executable_path=chrome_driver_path)
-    options = webdriver.ChromeOptions()
-    options.binary_location = chrome_binary_path
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
-    options.add_argument("--disable-blink-features=AutomationControlled")
 
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-        "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-    })
+def scrap_fiches_concurrents(id_url_map: dict, ids_selectionnes: list, base_dir: str) -> None:
+    save_directory = os.path.join(base_dir, "fiche concurrents")
+    recap_excel_path = os.path.join(base_dir, "recap_concurrents.xlsx")
+    driver = _get_driver(headless=False)
 
     os.makedirs(save_directory, exist_ok=True)
     recap_data = []
@@ -191,7 +145,7 @@ def scrap_fiches_concurrents(id_url_map, ids_selectionnes):
 
         try:
             driver.get(url)
-            time.sleep(random.uniform(2.5, 4.2))  # anti-bot
+            time.sleep(random.uniform(2.5, 4.2))
 
             html = driver.page_source
             soup = BeautifulSoup(html, "html.parser")
@@ -245,24 +199,24 @@ def scrap_fiches_concurrents(id_url_map, ids_selectionnes):
     print(f"- 📁 Fiches : {save_directory}")
     print(f"- 📊 Récapitulatif : {recap_excel_path}")
 
-# === EXPORT JSON PAR BATCH ===
-def export_fiches_concurrents_json(taille_batch=5):
-    dossier_source = save_directory
+
+def export_fiches_concurrents_json(base_dir: str, taille_batch: int = 5) -> None:
+    dossier_source = os.path.join(base_dir, "fiche concurrents")
     dossier_sortie = os.path.join(dossier_source, "batches_json")
     os.makedirs(dossier_sortie, exist_ok=True)
     fichiers_txt = [f for f in os.listdir(dossier_source) if f.endswith(".txt")]
     fichiers_txt.sort()
     id_global = 1
 
-    def extraire_h1(html):
+    def extraire_h1(html: str) -> str:
         match = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.IGNORECASE | re.DOTALL)
         return match.group(1).strip() if match else ""
 
     for i in range(0, len(fichiers_txt), taille_batch):
-        batch = fichiers_txt[i:i+taille_batch]
+        batch = fichiers_txt[i:i + taille_batch]
         data_batch = []
 
-        print(f"\n🔹 Batch {i//taille_batch + 1} : {len(batch)} fichiers")
+        print(f"\n🔹 Batch {i // taille_batch + 1} : {len(batch)} fichiers")
         for fichier in batch:
             chemin = os.path.join(dossier_source, fichier)
             try:
@@ -283,7 +237,7 @@ def export_fiches_concurrents_json(taille_batch=5):
                 continue
             id_global += 1
 
-        nom_fichier_sortie = f"batch_{i//taille_batch + 1}.json"
+        nom_fichier_sortie = f"batch_{i // taille_batch + 1}.json"
         chemin_sortie = os.path.join(dossier_sortie, nom_fichier_sortie)
         with open(chemin_sortie, "w", encoding="utf-8") as f_json:
             json.dump(data_batch, f_json, ensure_ascii=False, indent=2)
@@ -291,31 +245,3 @@ def export_fiches_concurrents_json(taille_batch=5):
         print(f"    ➡️ Batch sauvegardé : {nom_fichier_sortie}")
 
     print("\n✅ Export JSON terminé avec lots de 5 produits. Fichiers créés dans :", dossier_sortie)
-
-# === INTERFACE INTERACTIVE ===
-if __name__ == "__main__":
-    id_url_map = charger_liens_avec_id()
-    plage_input = input("🟢 Quels identifiants veux-tu scraper ? (ex: A1-A5): ").strip()
-    ids_selectionnes = extraire_ids_depuis_input(plage_input)
-
-    if not ids_selectionnes:
-        print("⛔ Aucun ID valide fourni. Arrêt du script.")
-        exit()
-
-    if input("▶️ Lancer le scraping des variantes ? (oui/non): ").strip().lower() == "oui":
-        scrap_produits_par_ids(id_url_map, ids_selectionnes)
-
-    if input("▶️ Lancer le scraping des fiches produits concurrents ? (oui/non): ").strip().lower() == "oui":
-        scrap_fiches_concurrents(id_url_map, ids_selectionnes)
-
-    # Nouvelle fonctionnalité : export JSON batché
-    if input("▶️ Voulez-vous exporter les fiches produits concurrents en lots JSON ? (oui/non): ").strip().lower() == "oui":
-        try:
-            taille = input("  🔹 Taille des lots (appuie Entrée pour 5): ").strip()
-            taille_batch = int(taille) if taille else 5
-        except:
-            print("⚠️ Valeur invalide, on utilise la taille 5 par défaut.")
-            taille_batch = 5
-        export_fiches_concurrents_json(taille_batch)
-
-    print("\n✅ Script terminé.")
