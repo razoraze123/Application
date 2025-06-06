@@ -1,0 +1,8 @@
+pyside6
+requests
+selenium
+beautifulsoup4
+lxml
+pandas
+python-dotenv
+tqdm
