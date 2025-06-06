@@ -1,8 +1,8 @@
 pyside6
 requests
 selenium
+pandas
 beautifulsoup4
 lxml
-pandas
 python-dotenv
 tqdm
