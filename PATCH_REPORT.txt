@@ -24,3 +24,8 @@ Corrections appliquées :
   `core/image_scraper.py`, `main.py` et `application_definitif.py`.
   Un `StreamHandler` redirigé vers `sys.stdout` assure la compatibilité
   avec `EmittingStream` de l'interface graphique.
+- Couverture de tests étendue :
+  - simulation des dépendances lourdes dans `tests/test_imports.py`.
+  - nouveaux tests pour `extraire_ids_depuis_input`, `ImageScraper.scrape_images`,
+    `scrap_produits_par_ids` et `scrap_fiches_concurrents`.
+  - exécution facultative de `flake8` dans la suite `pytest`.
