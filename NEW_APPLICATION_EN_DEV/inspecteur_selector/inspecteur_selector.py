@@ -83,7 +83,11 @@ def load_scrapers() -> Dict[str, Scraper]:
                 mod = importlib.import_module(mod_name)
             func = getattr(mod, func_name)
             scrapers[name] = func  # type: ignore[assignment]
-        except Exception:
+        except (ImportError, AttributeError) as exc:
+            print(f"Failed to load scraper '{spec}': {exc}")
+            continue
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"Error loading scraper '{spec}': {exc}")
             continue
     return scrapers
 
