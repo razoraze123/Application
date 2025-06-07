@@ -213,3 +213,40 @@ Modifiez les fichiers `style.qss` et `light.qss` pour ajuster la palette de coul
 3. **Navigation** : modifier la barre latérale pour ajouter ou réordonner les onglets.
 4. **Paramètres avancés** : utiliser l'argument `extra` pour la police (`font_family`) ou la densité (`density_scale`).
 5. **UI responsive** : ajuster les fichiers QSS pour la palette de couleurs et la police.
+
+## Lancer `scraper_images.py` en ligne de commande
+
+Le script `scraper_images.py` peut être exécuté directement sans l'interface graphique pour télécharger les images des produits.
+
+### Configuration par défaut
+
+Par défaut, le script utilise les clefs suivantes :
+
+- `chrome_driver_path` : chemin du Chromedriver (``None`` pour utiliser `webdriver_manager`)
+- `chrome_binary_path` : binaire de Chrome à utiliser
+- `root_folder` : dossier où seront enregistrées les images (`"images"`)
+- `links_file_path` : fichier texte contenant les URL des produits (`"links.txt"`)
+
+### Exemple de fichier YAML
+
+```yaml
+chrome_driver_path: "/usr/local/bin/chromedriver"
+chrome_binary_path: "/usr/bin/google-chrome"
+root_folder: "images"
+links_file_path: "links.txt"
+```
+
+Lancement avec un fichier de configuration :
+
+```bash
+python scraper_images.py --config config.yaml
+```
+
+### Options CLI principales
+
+- `--links` : fichier contenant les URLs des produits
+- `--selector` : sélecteur CSS des images (par défaut `.product-gallery__media img`)
+- `--chrome-driver` et `--chrome-binary` : chemins personnalisés pour Chrome/Chromedriver
+- `--root` : dossier de destination des images
+
+Les arguments passés en ligne de commande écrasent les valeurs du fichier de configuration.
