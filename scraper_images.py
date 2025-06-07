@@ -28,6 +28,10 @@ parser.add_argument(
     default=".product-gallery__media img",
     help="CSS selector used to locate product images",
 )
+parser.add_argument(
+    "--suffixes",
+    help="Path to a Python file defining a custom_suffixes dictionary",
+)
 args = parser.parse_args()
 selector = args.selector
 
@@ -45,14 +49,23 @@ ROOT_FOLDER = config["root_folder"]
 os.makedirs(ROOT_FOLDER, exist_ok=True)
 
 # === IMPORT DES SUFFIXES PERSONNALISÉS ===
-def import_custom_suffixes(path):
-    spec = importlib.util.spec_from_file_location("custom_suffixes", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.custom_suffixes
+DEFAULT_SUFFIXES = {
+    "chaussures": ["confort ultime", "style tendance"],
+    "sac": ["design élégant", "pratique au quotidien"],
+}
 
-suffix_file_path = r"C:\Users\Lamine\Desktop\woocommerce\code\custom_suffixes.py"
-custom_suffixes = import_custom_suffixes(suffix_file_path)
+def import_custom_suffixes(path):
+    try:
+        spec = importlib.util.spec_from_file_location("custom_suffixes", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.custom_suffixes
+    except FileNotFoundError:
+        return {}
+
+custom_suffixes = DEFAULT_SUFFIXES.copy()
+if args.suffixes:
+    custom_suffixes.update(import_custom_suffixes(args.suffixes))
 
 # Slugifie toutes les clés du dictionnaire
 def slugify(text):
