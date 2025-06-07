@@ -159,7 +159,7 @@ def scrap_fiches_concurrents(
     ids_selectionnes: list,
     base_dir: str,
 ) -> None:
-    save_directory = os.path.join(base_dir, "fiche concurrents")
+    save_directory = os.path.join(base_dir, "fiches_concurrents")
     recap_excel_path = os.path.join(base_dir, "recap_concurrents.xlsx")
     driver = _get_driver(headless=False)
 
@@ -240,7 +240,7 @@ def export_fiches_concurrents_json(
     base_dir: str,
     taille_batch: int = 5,
 ) -> None:
-    dossier_source = os.path.join(base_dir, "fiche concurrents")
+    dossier_source = os.path.join(base_dir, "fiches_concurrents")
     dossier_sortie = os.path.join(dossier_source, "batches_json")
     os.makedirs(dossier_sortie, exist_ok=True)
     fichiers_txt = [

@@ -125,7 +125,7 @@ class ScrapingWorker(QThread):
             self.totals["fiches"] = len(self.ids)
         if actions.get("export"):
             fc_dir = self.session_paths["fiches"]
-            src = os.path.join(fc_dir, "fiche concurrents")
+            src = os.path.join(fc_dir, "fiches_concurrents")
             txt_files = []
             if os.path.isdir(src):
                 txt_files = [f for f in os.listdir(src) if f.endswith(".txt")]
