@@ -3,7 +3,14 @@ import re
 import sys
 import time
 
-from PySide6.QtCore import Signal, QObject, QThread, Qt
+from PySide6.QtCore import (
+    Signal,
+    QObject,
+    QThread,
+    Qt,
+    QPropertyAnimation,
+    QEasingCurve,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -205,7 +212,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Scraping Produit")
         self.resize(850, 600)
-        self.setStyleSheet(DARK_STYLE)
+        style_path = os.path.join(os.path.dirname(__file__), "ui", "style.qss")
+        try:
+            with open(style_path, "r", encoding="utf-8") as f:
+                self.setStyleSheet(f.read())
+        except OSError:
+            self.setStyleSheet(DARK_STYLE)
 
         self.links_path = ""
         self.id_url_map: dict[str, str] = {}
@@ -495,7 +507,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         elapsed: float,
         remaining: float,
     ) -> None:
-        self.progress.setValue(percent)
+        self.progress.set_animated_value(percent)
         txt = (
             f"Temps écoulé: {int(elapsed)}s | "
             f"Temps restant estimé: {int(remaining)}s"
@@ -521,6 +533,15 @@ class ProgressBar(QProgressBar):
         super().__init__()
         self.setRange(0, 100)
         self.setValue(0)
+        self._anim = QPropertyAnimation(self, b"value")
+        self._anim.setDuration(300)
+        self._anim.setEasingCurve(QEasingCurve.InOutCubic)
+
+    def set_animated_value(self, value: int) -> None:
+        self._anim.stop()
+        self._anim.setStartValue(self.value())
+        self._anim.setEndValue(value)
+        self._anim.start()
 
 
 def main() -> None:
