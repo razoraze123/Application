@@ -8,3 +8,5 @@ Corrections appliquées :
   vérification d'une fonction utilitaire).
 - Suppression du paquet `scrapy` et rendu de `pyyaml` optionnel via
   `extras_require` (installation possible avec `pip install .[yaml]`).
+- Raccourcissement de plusieurs lignes longues et ajout d'un test `flake8`
+  pour vérifier le style de code.

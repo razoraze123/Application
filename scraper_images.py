@@ -13,11 +13,19 @@ DEFAULT_CONFIG = {
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Scrape images from product pages")
-    parser.add_argument("--config", help="Path to YAML or JSON configuration file")
+    parser = argparse.ArgumentParser(
+        description="Scrape images from product pages"
+    )
+    parser.add_argument(
+        "--config",
+        help="Path to YAML or JSON configuration file",
+    )
     parser.add_argument("--links", help="Text file containing product URLs")
-    parser.add_argument("--selector", default=".product-gallery__media img",
-                        help="CSS selector used to locate product images")
+    parser.add_argument(
+        "--selector",
+        default=".product-gallery__media img",
+        help="CSS selector used to locate product images",
+    )
     parser.add_argument("--chrome-driver", dest="chrome_driver")
     parser.add_argument("--chrome-binary", dest="chrome_binary")
     parser.add_argument("--root", dest="root_folder")

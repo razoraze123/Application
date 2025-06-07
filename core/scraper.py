@@ -69,7 +69,8 @@ def scrap_produits_par_ids(
                 )
                 time.sleep(2)
 
-                product_name = driver.find_element(By.TAG_NAME, "h1").text.strip()
+                name_el = driver.find_element(By.TAG_NAME, "h1")
+                product_name = name_el.text.strip()
                 base_sku = (
                     re.sub(r'\W+', '-', product_name.lower())
                     .strip("-")[:15]
@@ -91,7 +92,10 @@ def scrap_produits_par_ids(
                                 elem.text.strip(),
                             )
                             if match:
-                                product_price = match.group(1).replace(",", ".")
+                                product_price = match.group(1).replace(
+                                    ",",
+                                    ".",
+                                )
                             break
                     except Exception:
                         continue
@@ -212,7 +216,9 @@ def scrap_fiches_concurrents(
                 txt_path = os.path.join(save_directory, filename)
 
                 description_div = None
-                description_div = soup.find("div", {"id": "product_description"})
+                description_div = soup.find(
+                    "div", {"id": "product_description"}
+                )
                 if not description_div:
                     container = soup.find("div", class_="accordion__content")
                     if container:
