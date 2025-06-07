@@ -52,7 +52,8 @@ Lancez l’application
 css
 Copier
 Modifier
-python main.py
+python application_definitif.py
+Les fichiers `gui.py` et `interface.py` sont conservés à titre d'exemple.
 L’interface graphique s’ouvre : suivez les indications pour scraper les sites souhaités.
 
 Structure du projet (exemple)

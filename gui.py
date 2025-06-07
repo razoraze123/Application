@@ -1,3 +1,7 @@
+"""
+Legacy prototype GUI kept for reference.
+Use application_definitif.py for the current interface.
+"""
 import os
 import sys
 from PySide6.QtWidgets import (
