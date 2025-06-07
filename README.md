@@ -16,6 +16,8 @@ Interface graphique épurée, facile à prendre en main
 Dépendances principales
 PySide6 – interface graphique
 
+QtWebEngine – nécessaire pour le navigateur intégré (package PySide6-Qt6-WebEngine)
+
 requests – requêtes HTTP simples
 
 selenium – scraping dynamique
