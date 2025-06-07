@@ -41,6 +41,14 @@ cd Application
 pip install -r requirements.txt
 ```
 
+## Dépendances système
+Avant d'utiliser l'application sous Linux, installez les bibliothèques système nécessaires pour PySide6 :
+
+```bash
+sudo apt update
+sudo apt install -y libegl1 libgl1-mesa-glx libxkbcommon-x11-0
+```
+
 Utilisation
 Lancez l’application :
 
