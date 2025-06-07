@@ -36,7 +36,7 @@ from core.scraper import (
     scrap_produits_par_ids,
 )
 from core.utils import charger_liens_avec_id_fichier
-from ui.ui_utils import AnimatedProgressBar
+from ui.widgets import AnimatedProgressBar
 
 DARK_STYLE = """
 QMainWindow { background-color: #2b2b2b; color: #eee; }
