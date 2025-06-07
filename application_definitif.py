@@ -259,9 +259,9 @@ class MainWindow(QMainWindow):
         self.max_id_edit.setPlaceholderText("ID max")
         self.min_id_edit.textChanged.connect(self.update_range)
         self.max_id_edit.textChanged.connect(self.update_range)
-        select_all = QPushButton("Tout sélectionner")
+        select_all = QPushButton(qta.icon("fa5s.check-double"), "Tout sélectionner")
         select_all.clicked.connect(self.select_all_ids)
-        clear_sel = QPushButton("Effacer sélection")
+        clear_sel = QPushButton(qta.icon("fa5s.eraser"), "Effacer sélection")
         clear_sel.clicked.connect(self.clear_selection)
         range_layout.addWidget(self.min_id_edit)
         range_layout.addWidget(self.max_id_edit)
@@ -329,9 +329,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.time_label)
 
         self.toggle_log_btn = QToolButton()
+        self.toggle_log_btn.setIcon(qta.icon("fa5s.book"))
         self.toggle_log_btn.setText("Afficher le journal")
+        self.toggle_log_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.toggle_log_btn.setCheckable(True)
-        self.toggle_log_btn.setArrowType(Qt.RightArrow)
         self.toggle_log_btn.clicked.connect(self.toggle_log)
         layout.addWidget(self.toggle_log_btn)
 
@@ -549,9 +550,6 @@ La barre de progression et le minuteur indiquent l'avancement."""
 
     def toggle_log(self, checked: bool) -> None:
         self.log_area.setVisible(checked)
-        self.toggle_log_btn.setArrowType(
-            Qt.DownArrow if checked else Qt.RightArrow
-        )
 
     def append_log(self, text: str) -> None:
         self.log_area.moveCursor(QTextCursor.End)
