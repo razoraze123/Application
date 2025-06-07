@@ -1,3 +1,8 @@
+# Only for running the prototype directly
+from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 import os
 import re
 import sys
