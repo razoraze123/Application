@@ -372,7 +372,9 @@ class MainWindow(QMainWindow):
 
         self.cb_headless = QCheckBox("Scraping silencieux (headless)")
         self.cb_dark = QCheckBox("Mode sombre")
-        self.cb_dark.setChecked(os.path.basename(self.theme_path) == "style.qss")
+        self.cb_dark.setChecked(
+            os.path.basename(self.theme_path) == "style.qss"
+        )
         self.cb_dark.stateChanged.connect(self.on_theme_changed)
         layout.addWidget(self.cb_headless)
         layout.addWidget(self.cb_dark)
@@ -570,7 +572,6 @@ La barre de progression et le minuteur indiquent l'avancement."""
             theme = os.path.join(style_dir, "light.qss")
         self._apply_stylesheet(theme)
         self.settings.setValue("theme", theme)
-
 
 
 def main() -> None:

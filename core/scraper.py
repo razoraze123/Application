@@ -24,12 +24,21 @@ def _get_driver(headless: bool = False) -> webdriver.Chrome:
     driver = webdriver.Chrome(service=service, options=options)
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
-        {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"}
+        {
+            "source": (
+                "Object.defineProperty("
+                "navigator, 'webdriver', {get: () => undefined})"
+            )
+        },
     )
     return driver
 
 
-def scrap_produits_par_ids(id_url_map: dict, ids_selectionnes: list, base_dir: str) -> None:
+def scrap_produits_par_ids(
+    id_url_map: dict,
+    ids_selectionnes: list,
+    base_dir: str,
+) -> None:
     fichier_excel = os.path.join(base_dir, "woocommerce_mix.xlsx")
     driver = _get_driver(headless=True)
     woocommerce_rows = []
@@ -45,31 +54,51 @@ def scrap_produits_par_ids(id_url_map: dict, ids_selectionnes: list, base_dir: s
         try:
             driver.get(url)
             time.sleep(random.uniform(2.5, 3.5))
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight * 0.3);")
+            driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight * 0.3);"
+            )
             time.sleep(2)
 
             product_name = driver.find_element(By.TAG_NAME, "h1").text.strip()
-            base_sku = re.sub(r'\W+', '-', product_name.lower()).strip("-")[:15].upper()
+            base_sku = (
+                re.sub(r'\W+', '-', product_name.lower())
+                .strip("-")[:15]
+                .upper()
+            )
             product_price = ""
 
-            for selector in ["sale-price.text-lg", ".price", ".product-price", ".woocommerce-Price-amount"]:
+            for selector in [
+                "sale-price.text-lg",
+                ".price",
+                ".product-price",
+                ".woocommerce-Price-amount",
+            ]:
                 try:
                     elem = driver.find_element(By.CSS_SELECTOR, selector)
                     if elem and elem.text.strip():
-                        match = re.search(r"([0-9]+(?:[\\.,][0-9]{2})?)", elem.text.strip())
+                        match = re.search(
+                            r"([0-9]+(?:[\\.,][0-9]{2})?)",
+                            elem.text.strip(),
+                        )
                         if match:
                             product_price = match.group(1).replace(",", ".")
                         break
                 except Exception:
                     continue
 
-            variant_labels = driver.find_elements(By.CSS_SELECTOR, "label.color-swatch")
-            visible_labels = [label for label in variant_labels if label.is_displayed()]
+            variant_labels = driver.find_elements(
+                By.CSS_SELECTOR, "label.color-swatch"
+            )
+            visible_labels = [
+                label for label in variant_labels if label.is_displayed()
+            ]
             variant_names = []
 
             for label in visible_labels:
                 try:
-                    name = label.find_element(By.CSS_SELECTOR, "span.sr-only").text.strip()
+                    name = label.find_element(
+                        By.CSS_SELECTOR, "span.sr-only"
+                    ).text.strip()
                     variant_names.append(name)
                 except Exception:
                     continue
@@ -125,7 +154,11 @@ def scrap_produits_par_ids(id_url_map: dict, ids_selectionnes: list, base_dir: s
     print(f"\n📁 Données sauvegardées dans : {fichier_excel}")
 
 
-def scrap_fiches_concurrents(id_url_map: dict, ids_selectionnes: list, base_dir: str) -> None:
+def scrap_fiches_concurrents(
+    id_url_map: dict,
+    ids_selectionnes: list,
+    base_dir: str,
+) -> None:
     save_directory = os.path.join(base_dir, "fiche concurrents")
     recap_excel_path = os.path.join(base_dir, "recap_concurrents.xlsx")
     driver = _get_driver(headless=False)
@@ -192,7 +225,10 @@ def scrap_fiches_concurrents(id_url_map: dict, ids_selectionnes: list, base_dir:
             print(f"❌ Extraction Échec — {str(e)}")
             recap_data.append(("?", "?", url, "Extraction Échec"))
 
-    df = pd.DataFrame(recap_data, columns=["Nom du fichier", "H1", "Lien", "Statut"])
+    df = pd.DataFrame(
+        recap_data,
+        columns=["Nom du fichier", "H1", "Lien", "Statut"],
+    )
     df.to_excel(recap_excel_path, index=False)
     driver.quit()
     print("\n🎉 Extraction terminée. Résultats enregistrés dans :")
@@ -200,16 +236,25 @@ def scrap_fiches_concurrents(id_url_map: dict, ids_selectionnes: list, base_dir:
     print(f"- 📊 Récapitulatif : {recap_excel_path}")
 
 
-def export_fiches_concurrents_json(base_dir: str, taille_batch: int = 5) -> None:
+def export_fiches_concurrents_json(
+    base_dir: str,
+    taille_batch: int = 5,
+) -> None:
     dossier_source = os.path.join(base_dir, "fiche concurrents")
     dossier_sortie = os.path.join(dossier_source, "batches_json")
     os.makedirs(dossier_sortie, exist_ok=True)
-    fichiers_txt = [f for f in os.listdir(dossier_source) if f.endswith(".txt")]
+    fichiers_txt = [
+        f for f in os.listdir(dossier_source) if f.endswith(".txt")
+    ]
     fichiers_txt.sort()
     id_global = 1
 
     def extraire_h1(html: str) -> str:
-        match = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.IGNORECASE | re.DOTALL)
+        match = re.search(
+            r"<h1[^>]*>(.*?)</h1>",
+            html,
+            re.IGNORECASE | re.DOTALL,
+        )
         return match.group(1).strip() if match else ""
 
     for i in range(0, len(fichiers_txt), taille_batch):
@@ -244,4 +289,8 @@ def export_fiches_concurrents_json(base_dir: str, taille_batch: int = 5) -> None
 
         print(f"    ➡️ Batch sauvegardé : {nom_fichier_sortie}")
 
-    print("\n✅ Export JSON terminé avec lots de 5 produits. Fichiers créés dans :", dossier_sortie)
+    print(
+        "\n✅ Export JSON terminé avec lots de 5 produits. "
+        "Fichiers créés dans :",
+        dossier_sortie,
+    )
