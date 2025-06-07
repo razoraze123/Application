@@ -83,7 +83,7 @@ Options avancées dans l’interface
 Note :
 Ce projet est à usage strictement personnel et n’est pas destiné à une diffusion publique.
 
-Le dossier `NEW_APPLICATION_EN_DEV/` contient des scripts prototypes (comme
-`interface.py` ou `gui.py`) et ne constitue pas l’application officielle.
+Le dossier `NEW_APPLICATION_EN_DEV/` contient des scripts prototypes (tel que
+`interface_dev.py`) et ne constitue pas l’application officielle.
 
 # Application
