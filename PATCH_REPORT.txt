@@ -6,3 +6,9 @@ Corrections appliquées :
 - Mise à jour du README pour refléter la suppression des prototypes.
 - Ajout d'une suite minimale de tests dans `tests/` (import des modules et
   vérification d'une fonction utilitaire).
+- Nettoyage des dépendances : suppression de 'scrapy' et passage de 'pyyaml' en optionnel.
+- Corrections PEP8 : lignes longues et fin de fichier.
+- Ajout de docstrings et factorisation de fonctions dans core.scraper.
+- Renforcement de la robustesse (exceptions explicites, validation URL).
+- Remplacement des print() par logging.
+- Extension des tests unitaires.

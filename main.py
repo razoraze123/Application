@@ -21,7 +21,7 @@ def demander_base_dir() -> str:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    print("Bienvenue dans l'application de scraping!")
+    logging.info("Bienvenue dans l'application de scraping!")
     base_dir = demander_base_dir()
 
     id_url_map = charger_liens_avec_id(base_dir)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     ids_selectionnes = extraire_ids_depuis_input(plage_input)
 
     if not ids_selectionnes:
-        print("\u26d4 Aucun ID valide fourni. Arr\u00eat du script.")
+        logging.warning("\u26d4 Aucun ID valide fourni. Arr\u00eat du script.")
         exit()
 
     if input(
@@ -60,10 +60,10 @@ if __name__ == "__main__":
                 "  \ud83d\udd39 Taille des lots (appuie Entr\u00e9e pour 5): "
             ).strip()
             taille_batch = int(taille) if taille else 5
-        except Exception:
-            print(
-                "\u26a0\ufe0f Valeur invalide, on utilise la taille 5 par"
-                " d\u00e9faut."
+        except ValueError:
+            logging.warning(
+                "\u26a0\ufe0f Valeur invalide, on utilise la taille 5 par "
+                "d\u00e9faut."
             )
             taille_batch = 5
         code = export_fiches_concurrents_json(base_dir, taille_batch)

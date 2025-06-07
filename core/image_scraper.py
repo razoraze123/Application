@@ -1,16 +1,24 @@
+"""Simple Selenium-based image scraper."""
+
 import os
 import time
 import random
 import urllib.request
+import urllib.error
 import re
 import unicodedata
+import logging
 from typing import Iterable, List, Optional
 
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImageScraper:
@@ -23,6 +31,7 @@ class ImageScraper:
         root_folder: str = "images",
         selector: str = ".product-gallery__media img",
     ) -> None:
+        """Initialise scraper options."""
         self.chrome_driver_path = chrome_driver_path
         self.chrome_binary_path = chrome_binary_path
         self.root_folder = root_folder
@@ -33,7 +42,9 @@ class ImageScraper:
     # Utility helpers
     @staticmethod
     def slugify(text: str) -> str:
-        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+        """Return a filesystem-friendly slug for ``text``."""
+        text = unicodedata.normalize("NFKD", text)
+        text = text.encode("ascii", "ignore").decode("ascii")
         text = re.sub(r"[^\w\s-]", "", text.lower())
         return re.sub(r"[-\s]+", "-", text).strip("-")
 
@@ -50,7 +61,10 @@ class ImageScraper:
         if self.chrome_binary_path:
             options.binary_location = self.chrome_binary_path
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option(
+            "excludeSwitches",
+            ["enable-automation"],
+        )
         options.add_experimental_option("useAutomationExtension", False)
 
         if self.chrome_driver_path:
@@ -61,7 +75,12 @@ class ImageScraper:
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
-            {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"},
+            {
+                "source": (
+                    "Object.defineProperty("
+                    "navigator, 'webdriver', {get: () => undefined})"
+                )
+            },
         )
         return self.driver
 
@@ -73,51 +92,62 @@ class ImageScraper:
 
     def get_image_elements(self) -> Iterable:
         """Return image elements found on the page. Overridable."""
-        assert self.driver is not None
+        if self.driver is None:
+            raise RuntimeError("Driver not initialised")
         return self.driver.find_elements(By.CSS_SELECTOR, self.selector)
 
     # ------------------------------------------------------------------
     def scrape_images(self, urls: Iterable[str]) -> int:
-        """Main scraping routine."""
+        """Download images from each URL in ``urls``."""
         exit_code = 0
         try:
             if self.driver is None:
                 self.setup_driver()
             os.makedirs(self.root_folder, exist_ok=True)
-            total = len(list(urls)) if not isinstance(urls, list) else len(urls)
             if not isinstance(urls, list):
                 urls = list(urls)
+            total = len(urls)
             for index, url in enumerate(urls, start=1):
-                print(f"\n🔍 Produit {index}/{total} : {url}")
+                logger.info("\n🔍 Produit %s/%s : %s", index, total, url)
                 try:
-                    assert self.driver is not None
+                    if self.driver is None:
+                        raise RuntimeError("Driver not initialised")
                     self.driver.get(url)
                     time.sleep(random.uniform(2.5, 4.5))
 
                     product_title = self.get_product_title()
-                    folder = os.path.join(self.root_folder, self.slugify(product_title))
+                    folder = os.path.join(
+                        self.root_folder,
+                        self.slugify(product_title),
+                    )
                     os.makedirs(folder, exist_ok=True)
 
                     images = list(self.get_image_elements())
-                    print(f"🖼️ {len(images)} image(s) trouvée(s)")
+                    logger.info("🖼️ %s image(s) trouvée(s)", len(images))
 
                     for i, img in enumerate(images):
                         src = img.get_attribute("src")
-                        if not src:
+                        if (
+                            not src
+                            or not src.startswith(("http://", "https://"))
+                        ):
                             continue
                         filename = f"img_{i}.webp"
                         filepath = os.path.join(folder, filename)
                         try:
                             urllib.request.urlretrieve(src, filepath)
-                            print(f"   ✅ Image {i+1} → {filename}")
-                        except Exception as err:
+                            logger.info("   ✅ Image %s → %s", i + 1, filename)
+                        except urllib.error.URLError as err:
                             exit_code = 1
-                            print(f"   ❌ Échec de téléchargement pour image {i+1}: {err}")
-                except Exception as e:  # pragma: no cover - debug output
+                            logger.error(
+                                "   ❌ Échec téléchargement image %s: %s",
+                                i + 1,
+                                err,
+                            )
+                except WebDriverException as exc:  # pragma: no cover
                     exit_code = 1
-                    print(f"❌ Erreur sur la page {url} : {e}")
+                    logger.error("❌ Erreur sur la page %s : %s", url, exc)
         finally:
             if self.driver:
                 self.driver.quit()
         return exit_code
-

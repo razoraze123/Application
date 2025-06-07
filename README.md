@@ -30,6 +30,8 @@ lxml – parsing HTML/XML rapide
 
 python-dotenv – gestion de la config et des clés privées (optionnel)
 
+PyYAML – lecture de fichiers YAML (optionnel)
+
 tqdm – barres de progression dans la console
 
 Ajoutez les modules spécifiques au fur et à mesure de l’évolution du projet.
@@ -41,6 +43,9 @@ Clonez ce dépôt et installez les dépendances :
 git clone <repo_url>
 cd Application
 pip install -r requirements.txt
+
+# Optionnel : pour charger des fichiers YAML de configuration
+pip install -r requirements-optional.txt
 ```
 
 Ce fichier de dépendances est la référence unique pour l'ensemble du dépôt.
