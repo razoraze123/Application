@@ -171,4 +171,26 @@ Mise à jour : Pour mettre à jour la librairie, remplacer le contenu du dossi
 Remarque :
 La librairie n’a pas d’impact sur le fonctionnement principal de l’application tant qu’elle n’est pas explicitement appelée par les modules de scraping ou l’inspecteur visuel.
 
+## Exemple de rendu des résultats/logs
+
+```
+| Action    | Progression |
+|-----------|-------------|
+| Variantes | 2/10        |
+| Fiches    | 5/10        |
+| Export    | 1/3         |
+
+Journal
+-------
+✅ Fiche 1 récupérée
+...
+```
+
+## Conseils pour personnaliser l’UI responsive
+
+- Utilisez systématiquement les `QVBoxLayout` et `QHBoxLayout` pour que les widgets s’adaptent automatiquement à la taille de la fenêtre.
+- La méthode `setSectionResizeMode(QHeaderView.Stretch)` sur l’entête du tableau permet d’éviter une barre de défilement horizontale.
+- Testez le redimensionnement de la fenêtre pour vérifier que tous les éléments restent visibles.
+- Modifiez les fichiers `style.qss` et `light.qss` pour adapter la palette de couleurs ou la police tout en conservant la compatibilité avec **qt-material**.
+
 
