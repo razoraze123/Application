@@ -6,7 +6,7 @@ Ce sous-dossier contient un prototype de navigateur minimaliste permettant de r�
 
 - Navigateur intégré basé sur **QtWebEngine**
 - Champ pour saisir une URL et charger la page
-- Clic droit sur un élément pour copier son sélecteur CSS
+- Clic droit sur un élément pour copier son sélecteur CSS ou son XPath
 - Lancement immédiat du scraping avec le sélecteur choisi
 - Export possible des liens récupérés
 - Thèmes clair/sombre et interface bilingue (FR/EN)
@@ -23,7 +23,7 @@ Exécutez `python inspecteur_selector.py` puis :
 
 1. Entrez l'URL cible et cliquez sur *Charger*.
 2. Naviguez librement dans la page affichée.
-3. Faites un clic droit sur un élément et choisissez *Utiliser ce sélecteur* pour remplir automatiquement le champ de sélecteur.
+3. Faites un clic droit sur un élément et choisissez *Utiliser ce sélecteur* ou *Utiliser l'XPath* pour remplir automatiquement le champ.
 4. Lancez le scraping pour tester la sélection et afficher les liens extraits.
 5. Les liens peuvent être exportés au format TXT ou CSV.
 
@@ -35,4 +35,4 @@ Exécutez `python inspecteur_selector.py` puis :
 
 ## Limitations
 
-Ce prototype sert uniquement de démonstrateur et n'inclut pas de gestion avancée des erreurs ni de support complet de l'XPath. Seul le sélecteur CSS est récupéré par défaut.
+Ce prototype sert uniquement de démonstrateur et n'inclut pas de gestion avancée des erreurs. L'XPath proposé est généré via un simple script JavaScript et peut ne pas couvrir tous les cas.
