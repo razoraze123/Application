@@ -1,0 +1,17 @@
+Plusieurs fichiers contenaient des erreurs PEP8.
+
+Corrections principales :
+
+- **main.py** : imports mis sur plusieurs lignes et chaînes longues
+  éclatées pour respecter 79 caractères. Exemple ligne 3 et appel d'`input`
+  pour les messages utilisateurs.
+- **core/scraper.py** : réécriture de longues instructions (driver,
+  regex, listes) et mise en forme des signatures de fonctions pour
+  éviter les dépassements de colonne. Voir notamment l'initialisation du
+  driver et la boucle de scraping des variantes.
+- **application_definitif.py** : ligne de vérification du thème et
+  excès de lignes vides corrigés vers la fin du fichier.
+- Dossier `NEW_APPLICATION_EN_DEV/` supprimé car indiqué comme prototype
+  dans la documentation.
+
+Tous les scripts conservent leur logique initiale.
