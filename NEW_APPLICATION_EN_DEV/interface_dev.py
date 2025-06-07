@@ -258,16 +258,28 @@ class MainWindow(QMainWindow):
         action_layout = QHBoxLayout()
         self.btn_variantes = QPushButton(qta.icon("fa5s.cubes"), "Variantes")
         self.btn_variantes.setCheckable(True)
+        self.status_var = QLabel()
         self.btn_fiches = QPushButton(qta.icon("fa5s.file-alt"), "Fiches")
         self.btn_fiches.setCheckable(True)
+        self.status_fiche = QLabel()
         self.btn_export = QPushButton(qta.icon("fa5s.download"), "Export JSON")
         self.btn_export.setCheckable(True)
+        self.status_export = QLabel()
+        chip_style = (
+            "background:#333;color:#fff;font-weight:bold;"
+            "border:1px solid #555;border-radius:8px;padding:2px 6px;"
+        )
         for b in (self.btn_variantes, self.btn_fiches, self.btn_export):
             b.setStyleSheet("QPushButton:checked{background-color:#0078d7;}")
             b.setFixedHeight(28)
+        for lab in (self.status_var, self.status_fiche, self.status_export):
+            lab.setStyleSheet(chip_style)
         action_layout.addWidget(self.btn_variantes)
+        action_layout.addWidget(self.status_var)
         action_layout.addWidget(self.btn_fiches)
+        action_layout.addWidget(self.status_fiche)
         action_layout.addWidget(self.btn_export)
+        action_layout.addWidget(self.status_export)
         layout.addLayout(action_layout)
 
         self.launch_btn = QPushButton(qta.icon("fa5s.play"), "Lancer")
@@ -276,21 +288,9 @@ class MainWindow(QMainWindow):
 
         self.progress = ProgressBar()
 
-        status_layout = QHBoxLayout()
-        status_layout.setAlignment(Qt.AlignRight)
-        self.status_var = QLabel()
-        self.status_fiche = QLabel()
-        self.status_export = QLabel()
-        for lab in (self.status_var, self.status_fiche, self.status_export):
-            lab.setStyleSheet("background:#555;padding:2px 4px;border-radius:4px;")
-        status_layout.addWidget(self.status_var)
-        status_layout.addWidget(self.status_fiche)
-        status_layout.addWidget(self.status_export)
-
         progress_line = QHBoxLayout()
         progress_line.addWidget(self.progress, 1)
         progress_line.addStretch(1)
-        progress_line.addLayout(status_layout)
         layout.addLayout(progress_line)
 
         self.time_label = QLabel("Temps écoulé: 0s | Temps restant estimé: ?")
