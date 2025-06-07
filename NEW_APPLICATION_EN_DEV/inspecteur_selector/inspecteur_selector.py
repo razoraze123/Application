@@ -57,6 +57,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "en": {
         "load": "Load",
         "use_selector": "Use this selector",
+        "use_xpath": "Use XPath",
         "selector": "CSS selector:",
         "scrape": "Scrape",
         "export_txt": "Export TXT",
@@ -72,6 +73,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "fr": {
         "load": "Charger",
         "use_selector": "Utiliser ce sélecteur",
+        "use_xpath": "Utiliser cet XPath",
         "selector": "Sélecteur CSS :",
         "scrape": "Lancer le scraping",
         "export_txt": "Exporter TXT",
@@ -224,9 +226,14 @@ class BrowserInspector(QMainWindow):
         use_action = menu.addAction(
             TRANSLATIONS[self.language]["use_selector"]
         )
+        xpath_action = menu.addAction(
+            TRANSLATIONS[self.language]["use_xpath"]
+        )
         action = menu.exec_(self.view.mapToGlobal(pos))
         if action == use_action:
             self.grab_selector_at(pos)
+        elif action == xpath_action:
+            self.grab_xpath_at(pos)
 
     def grab_selector_at(self, pos) -> None:
         js = """
@@ -253,6 +260,34 @@ class BrowserInspector(QMainWindow):
                 }
                 var el = document.elementFromPoint(%d, %d);
                 return cssPath(el);
+            }())
+        """ % (pos.x(), pos.y())
+        self.view.page().runJavaScript(js, self.set_selector)
+
+    def grab_xpath_at(self, pos) -> None:
+        js = """
+            (function() {
+                function getXPath(el) {
+                    if (el.id !== '') {
+                        return '//*[@id="' + el.id + '"]';
+                    }
+                    if (el === document.body) {
+                        return '/html/body';
+                    }
+                    var ix = 0;
+                    var siblings = el.parentNode.childNodes;
+                    for (var i = 0; i < siblings.length; i++) {
+                        var sib = siblings[i];
+                        if (sib === el) {
+                            return getXPath(el.parentNode) + '/' + el.tagName.toLowerCase() + '[' + (ix + 1) + ']';
+                        }
+                        if (sib.nodeType === 1 && sib.tagName === el.tagName) {
+                            ix++;
+                        }
+                    }
+                }
+                var el = document.elementFromPoint(%d, %d);
+                return getXPath(el);
             }())
         """ % (pos.x(), pos.y())
         self.view.page().runJavaScript(js, self.set_selector)
