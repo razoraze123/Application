@@ -127,6 +127,14 @@ Optimisations d’images automatisées
 
 Options avancées dans l’interface
 
+## Paramètres avancés et customisation
+
+L'interface propose déjà un bouton pour activer le mode sombre ou clair.
+Les prochaines versions permettront de personnaliser davantage le thème
+grâce à des paramètres supplémentaires (comme la police ou la densité de
+l'interface). Ces réglages seront stockés dans la configuration et transmis
+à `qt-material` via l'argument `extra`.
+
 Note :
 Ce projet est à usage strictement personnel et n’est pas destiné à une diffusion publique.
 

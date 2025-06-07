@@ -225,6 +225,9 @@ class MainWindow(QMainWindow):
         self._apply_stylesheet(theme_path)
         self.theme_path = theme_path
 
+        # Parameters reserved for future customisation like font or density
+        self.extra_params: dict[str, str] = {}
+
         self.links_path = ""
         self.id_url_map: dict[str, str] = {}
         self.all_ids: list[str] = []
@@ -387,13 +390,17 @@ class MainWindow(QMainWindow):
         layout.addLayout(batch_layout)
 
         self.cb_headless = QCheckBox("Scraping silencieux (headless)")
-        self.cb_dark = QCheckBox("Mode sombre")
-        self.cb_dark.setChecked(
+
+        self.theme_toggle = QToolButton()
+        self.theme_toggle.setCheckable(True)
+        self.theme_toggle.setChecked(
             os.path.basename(self.theme_path) == "style.qss"
         )
-        self.cb_dark.stateChanged.connect(self.on_theme_changed)
+        self._update_theme_icon()
+        self.theme_toggle.clicked.connect(self.on_theme_changed)
+
         layout.addWidget(self.cb_headless)
-        layout.addWidget(self.cb_dark)
+        layout.addWidget(self.theme_toggle)
 
         save_btn = QPushButton(qta.icon("fa5s.save"), "Sauvegarder")
         save_btn.clicked.connect(self.save_settings)
@@ -581,18 +588,42 @@ La barre de progression et le minuteur indiquent l'avancement."""
 
     def on_theme_changed(self) -> None:
         style_dir = os.path.join(os.path.dirname(__file__), "ui")
-        if self.cb_dark.isChecked():
+        if self.theme_toggle.isChecked():
             theme = os.path.join(style_dir, "style.qss")
         else:
             theme = os.path.join(style_dir, "light.qss")
         self._apply_stylesheet(theme)
         self.settings.setValue("theme", theme)
+        self._update_theme_icon()
+
+    def _update_theme_icon(self) -> None:
+        if self.theme_toggle.isChecked():
+            self.theme_toggle.setIcon(qta.icon("fa5s.moon"))
+            self.theme_toggle.setText("Mode sombre")
+        else:
+            self.theme_toggle.setIcon(qta.icon("fa5s.sun"))
+            self.theme_toggle.setText("Mode clair")
+        self.theme_toggle.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
 
 def main() -> None:
     app = QApplication(sys.argv)
-    apply_stylesheet(app, theme="dark_purple.xml")
+    settings = QSettings("scraping_app", "ui")
+
+    def load_extra_params() -> dict[str, str]:
+        extras: dict[str, str] = {}
+        font = settings.value("font", "")
+        density = settings.value("density", "")
+        if font:
+            extras["font"] = font
+        if density:
+            extras["density"] = density
+        return extras
+
+    extras = load_extra_params()
+    apply_stylesheet(app, theme="dark_purple.xml", extra=extras)
     win = MainWindow()
+    win.extra_params = extras
     win.show()
     sys.exit(app.exec())
 
