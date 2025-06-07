@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import List, Dict
 
-from PySide6.QtCore import Qt, QUrl, QThread, Signal
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QAction, QClipboard
 from PySide6.QtWidgets import (
     QApplication,
@@ -14,14 +14,19 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
-from PySide6.QtWebEngineWidgets import QWebEngineView
+
+import os
+import asyncio
+import shutil
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from websockets.server import serve
 
 # Import du module de scraping existant
 # Lorsque le script est exécuté directement, l'import relatif ci-dessous ne
@@ -51,6 +56,73 @@ class ScrapingThread(QThread):
             self.finished.emit(links)
         except Exception as exc:  # pragma: no cover - show error
             self.error.emit(str(exc))
+
+
+class SelectorServer(QThread):
+    """WebSocket server receiving CSS selectors from the browser."""
+
+    selector_received = Signal(str)
+
+    def __init__(self, host: str = "localhost", port: int = 8765) -> None:
+        super().__init__()
+        self.host = host
+        self.port = port
+
+    async def _handler(self, websocket) -> None:  # pragma: no cover - IPC
+        async for message in websocket:
+            self.selector_received.emit(message)
+
+    def run(self) -> None:  # pragma: no cover - IPC
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        server = serve(self._handler, self.host, self.port)
+        loop.run_until_complete(server)
+        loop.run_forever()
+
+
+def find_chrome() -> str | None:
+    """Return path to Chrome/Chromium executable if found."""
+    candidates = []
+    if sys.platform.startswith("win"):
+        candidates.extend(
+            [
+                os.path.join(
+                    os.getenv("PROGRAMFILES", ""),
+                    "Google",
+                    "Chrome",
+                    "Application",
+                    "chrome.exe",
+                ),
+                os.path.join(
+                    os.getenv("PROGRAMFILES(X86)", ""),
+                    "Google",
+                    "Chrome",
+                    "Application",
+                    "chrome.exe",
+                ),
+                os.path.join(
+                    os.getenv("LOCALAPPDATA", ""),
+                    "Google",
+                    "Chrome",
+                    "Application",
+                    "chrome.exe",
+                ),
+            ]
+        )
+    elif sys.platform == "darwin":
+        candidates.append(
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        )
+    else:
+        candidates.extend([
+            shutil.which("google-chrome"),
+            shutil.which("chromium-browser"),
+            shutil.which("chromium"),
+        ])
+    for cand in candidates:
+        if cand and os.path.exists(cand):
+            return cand
+    return None
 
 
 TRANSLATIONS: Dict[str, Dict[str, str]] = {
@@ -107,10 +179,10 @@ class BrowserInspector(QMainWindow):
         url_layout.addWidget(self.load_button)
         vlayout.addLayout(url_layout)
 
-        self.view = QWebEngineView()
-        self.view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.view.customContextMenuRequested.connect(self.show_context_menu)
-        vlayout.addWidget(self.view)
+        self.driver: webdriver.Chrome | None = None
+        self.ws_thread = SelectorServer()
+        self.ws_thread.selector_received.connect(self.set_selector)
+        self.ws_thread.start()
 
         sel_layout = QHBoxLayout()
         self.selector_label = QLabel()
@@ -219,78 +291,62 @@ class BrowserInspector(QMainWindow):
         url = self.url_edit.text().strip()
         if not url:
             return
-        self.view.setUrl(QUrl(url))
+        if self.driver is None:
+            chrome_path = find_chrome()
+            if not chrome_path:
+                chrome_path, _ = QFileDialog.getOpenFileName(
+                    self,
+                    "Select Chrome",
+                    "",
+                    "Executable (*)",
+                )
+                if not chrome_path:
+                    return
+            options = webdriver.ChromeOptions()
+            options.add_argument("--remote-debugging-port=9222")
+            options.binary_location = chrome_path
+            self.driver = webdriver.Chrome(
+                ChromeDriverManager().install(), options=options
+            )
+        self.driver.get(url)
+        self.inject_script()
 
-    def show_context_menu(self, pos) -> None:
-        menu = QMenu(self)
-        use_action = menu.addAction(
-            TRANSLATIONS[self.language]["use_selector"]
-        )
-        xpath_action = menu.addAction(
-            TRANSLATIONS[self.language]["use_xpath"]
-        )
-        action = menu.exec_(self.view.mapToGlobal(pos))
-        if action == use_action:
-            self.grab_selector_at(pos)
-        elif action == xpath_action:
-            self.grab_xpath_at(pos)
-
-    def grab_selector_at(self, pos) -> None:
-        js = """
-            (function() {
-                function cssPath(el) {
-                    var path = [];
-                    while (el.nodeType === Node.ELEMENT_NODE) {
-                        var selector = el.nodeName.toLowerCase();
-                        if (el.id) {
-                            selector += '#' + el.id;
+    def inject_script(self) -> None:
+        if not self.driver:
+            return
+        script = """
+            if(!window.__selector_ws){
+                window.__selector_ws = new WebSocket('ws://localhost:8765');
+                function cssPath(el){
+                    var path=[];
+                    while(el && el.nodeType===1){
+                        var selector=el.nodeName.toLowerCase();
+                        if(el.id){
+                            selector+='#'+el.id;
                             path.unshift(selector);
                             break;
-                        } else {
-                            var sib = el, nth = 1;
-                            while (sib = sib.previousElementSibling) {
-                                if (sib.nodeName.toLowerCase() == selector) nth++;
+                        }else{
+                            var sib=el,nth=1;
+                            while(sib=sib.previousElementSibling){
+                                if(sib.nodeName.toLowerCase()==selector) nth++;
                             }
-                            if (nth != 1) selector += ':nth-of-type(' + nth + ')';
+                            if(nth!=1) selector+=':nth-of-type('+nth+')';
                         }
                         path.unshift(selector);
-                        el = el.parentNode;
+                        el=el.parentNode;
                     }
                     return path.join(' > ');
                 }
-                var el = document.elementFromPoint(%d, %d);
-                return cssPath(el);
-            }())
-        """ % (pos.x(), pos.y())
-        self.view.page().runJavaScript(js, self.set_selector)
-
-    def grab_xpath_at(self, pos) -> None:
-        js = """
-            (function() {
-                function getXPath(el) {
-                    if (el.id !== '') {
-                        return '//*[@id="' + el.id + '"]';
-                    }
-                    if (el === document.body) {
-                        return '/html/body';
-                    }
-                    var ix = 0;
-                    var siblings = el.parentNode.childNodes;
-                    for (var i = 0; i < siblings.length; i++) {
-                        var sib = siblings[i];
-                        if (sib === el) {
-                            return getXPath(el.parentNode) + '/' + el.tagName.toLowerCase() + '[' + (ix + 1) + ']';
-                        }
-                        if (sib.nodeType === 1 && sib.tagName === el.tagName) {
-                            ix++;
-                        }
-                    }
-                }
-                var el = document.elementFromPoint(%d, %d);
-                return getXPath(el);
-            }())
-        """ % (pos.x(), pos.y())
-        self.view.page().runJavaScript(js, self.set_selector)
+                document.addEventListener('contextmenu',function(e){
+                    const sel=cssPath(e.target);
+                    window.__selector_ws.send(sel);
+                },true);
+            }
+        """
+        try:
+            self.driver.execute_script(script)
+        except Exception:
+            pass
 
     def set_selector(self, selector: str) -> None:
         if not selector:
@@ -299,7 +355,7 @@ class BrowserInspector(QMainWindow):
         QApplication.clipboard().setText(selector, QClipboard.Clipboard)
 
     def handle_scrape(self) -> None:
-        url = self.view.url().toString()
+        url = self.driver.current_url if self.driver else ""
         selector = self.selector_edit.text().strip()
         if not url or not selector:
             return
@@ -327,7 +383,12 @@ class BrowserInspector(QMainWindow):
     def export_txt(self) -> None:
         if not self.links:
             return
-        path, _ = QFileDialog.getSaveFileName(self, "Enregistrer sous", "liens.txt", "Fichier texte (*.txt)")
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Enregistrer sous",
+            "liens.txt",
+            "Fichier texte (*.txt)",
+        )
         if path:
             with open(path, "w", encoding="utf-8") as f:
                 f.write("\n".join(self.links))
@@ -335,11 +396,24 @@ class BrowserInspector(QMainWindow):
     def export_csv(self) -> None:
         if not self.links:
             return
-        path, _ = QFileDialog.getSaveFileName(self, "Enregistrer sous", "liens.csv", "Fichier CSV (*.csv)")
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Enregistrer sous",
+            "liens.csv",
+            "Fichier CSV (*.csv)",
+        )
         if path:
             with open(path, "w", encoding="utf-8") as f:
                 for link in self.links:
                     f.write(f"{link}\n")
+
+    def closeEvent(self, event) -> None:  # pragma: no cover - GUI
+        if self.driver:
+            try:
+                self.driver.quit()
+            except Exception:
+                pass
+        event.accept()
 
 
 def main() -> None:
