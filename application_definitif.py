@@ -40,16 +40,6 @@ from core.utils import charger_liens_avec_id_fichier
 from ui.widgets import AnimatedProgressBar
 from qt_material import apply_stylesheet
 
-MATERIAL_THEME = "dark_purple.xml"
-
-
-def apply_material_theme(
-    app: QApplication,
-    theme: str = MATERIAL_THEME,
-) -> None:
-    """Apply the qt-material theme to the given QApplication instance."""
-    apply_stylesheet(app, theme=theme)
-
 
 DARK_STYLE = """
 QMainWindow { background-color: #2b2b2b; color: #eee; }
@@ -590,7 +580,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
 
 def main() -> None:
     app = QApplication(sys.argv)
-    apply_material_theme(app)
+    apply_stylesheet(app, theme="dark_purple.xml")
     win = MainWindow()
     win.show()
     sys.exit(app.exec())

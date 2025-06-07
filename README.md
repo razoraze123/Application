@@ -63,6 +63,17 @@ python application_definitif.py
 L’interface graphique s’ouvre : suivez les indications pour scraper les sites souhaités.
 `application_definitif.py` est l’interface officielle maintenue dans ce dépôt.
 
+## Application du thème Material Design avec qt-material
+
+```python
+from qt_material import apply_stylesheet
+app = QApplication(sys.argv)
+apply_stylesheet(app, theme='dark_purple.xml')
+```
+
+Pour changer de thème, remplacez `dark_purple.xml` par l’un des nombreux thèmes fournis
+dans qt-material (par exemple : `dark_amber.xml`, `dark_blue.xml`, `light_pink.xml`, etc.).
+
 Structure du projet (exemple)
 css
 Copier
