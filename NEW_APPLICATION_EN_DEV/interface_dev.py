@@ -222,6 +222,8 @@ class MainWindow(QMainWindow):
     def _build_scraping_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setSpacing(2)
+        layout.setContentsMargins(4, 4, 4, 4)
 
         self.file_info = QLabel("Aucun fichier chargé")
         layout.addWidget(self.file_info)
@@ -244,6 +246,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(range_layout)
 
         self.count_label = QLabel("0/0")
+        self.count_label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.count_label)
 
         action_layout = QHBoxLayout()
@@ -255,6 +258,7 @@ class MainWindow(QMainWindow):
         self.btn_export.setCheckable(True)
         for b in (self.btn_variantes, self.btn_fiches, self.btn_export):
             b.setStyleSheet("QPushButton:checked{background-color:#0078d7;}")
+            b.setFixedHeight(28)
         action_layout.addWidget(self.btn_variantes)
         action_layout.addWidget(self.btn_fiches)
         action_layout.addWidget(self.btn_export)
@@ -265,9 +269,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.launch_btn)
 
         self.progress = ProgressBar()
-        layout.addWidget(self.progress)
 
         status_layout = QHBoxLayout()
+        status_layout.setAlignment(Qt.AlignRight)
         self.status_var = QLabel()
         self.status_fiche = QLabel()
         self.status_export = QLabel()
@@ -276,7 +280,12 @@ class MainWindow(QMainWindow):
         status_layout.addWidget(self.status_var)
         status_layout.addWidget(self.status_fiche)
         status_layout.addWidget(self.status_export)
-        layout.addLayout(status_layout)
+
+        progress_line = QHBoxLayout()
+        progress_line.addWidget(self.progress, 1)
+        progress_line.addStretch(1)
+        progress_line.addLayout(status_layout)
+        layout.addLayout(progress_line)
 
         self.time_label = QLabel("Temps écoulé: 0s | Temps restant estimé: ?")
         layout.addWidget(self.time_label)
