@@ -234,8 +234,8 @@ class MainWindow(QMainWindow):
     def _build_scraping_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        layout.setSpacing(4)
-        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(2)
+        layout.setContentsMargins(4, 4, 4, 4)
 
         self.total_links_label = QLabel("Nombre de liens total : 0")
         f = self.total_links_label.font()
@@ -262,7 +262,7 @@ class MainWindow(QMainWindow):
         layout.addLayout(range_layout)
 
         self.count_label = QLabel("IDs sélectionnés : 0/0")
-        self.count_label.setAlignment(Qt.AlignCenter)
+        self.count_label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.count_label)
 
         action_layout = QHBoxLayout()
@@ -289,6 +289,7 @@ class MainWindow(QMainWindow):
                 "QToolButton {padding:2px 6px;}"
                 "QToolButton:checked{background-color:#0078d7;}"
             )
+            b.setFixedHeight(28)
         action_layout.addWidget(self.btn_variantes)
         action_layout.addWidget(self.btn_fiches)
         action_layout.addWidget(self.btn_export)
@@ -301,6 +302,7 @@ class MainWindow(QMainWindow):
         self.progress = AnimatedProgressBar()
         status_layout = QHBoxLayout()
         status_layout.setSpacing(4)
+        status_layout.setAlignment(Qt.AlignRight)
         self.status_var = QLabel()
         self.status_fiche = QLabel()
         self.status_export = QLabel()
@@ -310,6 +312,7 @@ class MainWindow(QMainWindow):
             )
         progress_line = QHBoxLayout()
         progress_line.addWidget(self.progress, 1)
+        progress_line.addStretch(1)
         progress_line.addLayout(status_layout)
         status_layout.addWidget(self.status_var)
         status_layout.addWidget(self.status_fiche)
