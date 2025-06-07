@@ -14,6 +14,58 @@ QLineEdit, QTextEdit {
     padding: 2px 4px;
 }
 
+QSpinBox {
+    background-color: #3c3c3c;
+    color: #eeeeee;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+QSpinBox::up-button,
+QSpinBox::down-button {
+    background-color: transparent;
+    border: none;
+    width: 14px;
+}
+QSpinBox::up-button:hover,
+QSpinBox::down-button:hover {
+    background-color: #555555;
+}
+
+QSlider::groove:horizontal {
+    height: 4px;
+    background: #444444;
+    border: 1px solid #555555;
+    border-radius: 2px;
+}
+QSlider::handle:horizontal {
+    background: #0078d7;
+    border: 1px solid #0078d7;
+    width: 14px;
+    height: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+}
+QSlider::handle:horizontal:hover { background: #3399ff; border-color: #3399ff; }
+QSlider::handle:horizontal:pressed { background: #005499; border-color: #005499; }
+
+QSlider::groove:vertical {
+    width: 4px;
+    background: #444444;
+    border: 1px solid #555555;
+    border-radius: 2px;
+}
+QSlider::handle:vertical {
+    background: #0078d7;
+    border: 1px solid #0078d7;
+    width: 14px;
+    height: 14px;
+    margin: 0 -5px;
+    border-radius: 7px;
+}
+QSlider::handle:vertical:hover { background: #3399ff; border-color: #3399ff; }
+QSlider::handle:vertical:pressed { background: #005499; border-color: #005499; }
+
 QPushButton, QToolButton {
     background-color: #444444;
     color: #eeeeee;
