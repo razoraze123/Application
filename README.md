@@ -33,32 +33,31 @@ tqdm – barres de progression dans la console
 Ajoutez les modules spécifiques au fur et à mesure de l’évolution du projet.
 
 Installation
-Clonez ce dépôt
+Clonez ce dépôt :
 
-bash
-Copier
-Modifier
+```bash
 git clone <lien_du_repo>
 cd scraper
-Installez les dépendances
+```
 
-nginx
-Copier
-Modifier
+Installez les dépendances :
+
+```bash
 pip install -r requirements.txt
-Utilisation
-Lancez l’application
+```
 
-css
-Copier
-Modifier
-python main.py
+Utilisation
+Lancez l’application :
+
+```bash
+python application_definitif.py
+```
+
 L’interface graphique s’ouvre : suivez les indications pour scraper les sites souhaités.
 
 Structure du projet (exemple)
-css
-Copier
-Modifier
+
+```text
 scraper/
 │
 ├── main.py
@@ -70,6 +69,9 @@ scraper/
 │   └── [modules d’interface]
 └── utils/
     └── [fonctions utilitaires]
+```
+
+Le dossier `NEW_APPLICATION_EN_DEV` contient les prototypes et essais en cours de développement. Il peut être ignoré pour une utilisation classique de l’application.
 À venir
 Ajout de modules spécialisés (scraping images, gestion des variantes, export CSV, etc.)
 
