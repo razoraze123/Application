@@ -208,7 +208,8 @@ class MainWindow(QMainWindow):
         file_layout = QHBoxLayout()
         self.file_edit = QLineEdit()
         self.file_edit.setReadOnly(True)
-        file_btn = QPushButton(qta.icon("fa.folder-open"), "Choisir le fichier")
+        # Utilisation de l'icône FontAwesome 5 solid
+        file_btn = QPushButton(qta.icon("fa5s.folder-open"), "Choisir le fichier")
         file_btn.clicked.connect(self.browse_links)
         self.file_info = QLabel()
         file_layout.addWidget(self.file_edit, 1)
@@ -234,9 +235,12 @@ class MainWindow(QMainWindow):
         self.action_btn.setText("Actions")
         self.action_btn.setPopupMode(QToolButton.InstantPopup)
         self.action_menu = QMenu(self)
-        self.act_variantes = QAction(qta.icon("fa.cubes"), "Scraper les variantes", self.action_btn, checkable=True)
-        self.act_fiches = QAction(qta.icon("fa.file-text"), "Scraper les fiches", self.action_btn, checkable=True)
-        self.act_export = QAction(qta.icon("fa.download"), "Exporter en JSON", self.action_btn, checkable=True)
+        # "cubes" n'existe qu'en style solid dans FA5
+        self.act_variantes = QAction(qta.icon("fa5s.cubes"), "Scraper les variantes", self.action_btn, checkable=True)
+        # "file-text" devient "file-alt" en FontAwesome 5 (style solid)
+        self.act_fiches = QAction(qta.icon("fa5s.file-alt"), "Scraper les fiches", self.action_btn, checkable=True)
+        # Icône de téléchargement en style solid
+        self.act_export = QAction(qta.icon("fa5s.download"), "Exporter en JSON", self.action_btn, checkable=True)
         self.action_menu.addAction(self.act_variantes)
         self.action_menu.addAction(self.act_fiches)
         self.action_menu.addAction(self.act_export)
@@ -255,7 +259,8 @@ class MainWindow(QMainWindow):
         batch_layout.addWidget(self.batch_slider)
         layout.addLayout(batch_layout)
 
-        self.launch_btn = QPushButton(qta.icon("fa.play"), "Lancer")
+        # Bouton lecture en style solid
+        self.launch_btn = QPushButton(qta.icon("fa5s.play"), "Lancer")
         self.launch_btn.clicked.connect(self.start_actions)
         layout.addWidget(self.launch_btn)
 
@@ -274,7 +279,8 @@ class MainWindow(QMainWindow):
         dir_layout = QHBoxLayout()
         default_dir = "C:/Users/Lamine/Desktop/TEST APPLI"
         self.dir_edit = QLineEdit(default_dir)
-        dir_btn = QPushButton(qta.icon("fa.folder"), "Parcourir")
+        # Icône dossier en style solid
+        dir_btn = QPushButton(qta.icon("fa5s.folder"), "Parcourir")
         dir_btn.clicked.connect(self.browse_dir)
         dir_layout.addWidget(QLabel("Dossier de sortie:"))
         dir_layout.addWidget(self.dir_edit, 1)
@@ -284,7 +290,8 @@ class MainWindow(QMainWindow):
         file_layout = QHBoxLayout()
         self.links_edit = QLineEdit()
         self.links_edit.setReadOnly(True)
-        links_btn = QPushButton(qta.icon("fa.folder-open"), "Fichier liens")
+        # Dossier ouvert (solid)
+        links_btn = QPushButton(qta.icon("fa5s.folder-open"), "Fichier liens")
         links_btn.clicked.connect(self.browse_links_settings)
         file_layout.addWidget(self.links_edit, 1)
         file_layout.addWidget(links_btn)
@@ -306,7 +313,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.cb_headless)
         layout.addWidget(self.cb_dark)
 
-        save_btn = QPushButton(qta.icon("fa.save"), "Sauvegarder")
+        # Icône disquette en FA5 (solid)
+        save_btn = QPushButton(qta.icon("fa5s.save"), "Sauvegarder")
         save_btn.clicked.connect(self.save_settings)
         layout.addWidget(save_btn)
         layout.addStretch(1)
