@@ -97,17 +97,27 @@ class SelectorServer(QThread):
         super().__init__()
         self.host = host
         self.port = port
+        self.loop: asyncio.AbstractEventLoop | None = None
+        self.server = None
 
     async def _handler(self, websocket) -> None:  # pragma: no cover - IPC
         async for message in websocket:
             self.selector_received.emit(message)
 
     def run(self) -> None:  # pragma: no cover - IPC
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        server = serve(self._handler, self.host, self.port)
-        loop.run_until_complete(server)
-        loop.run_forever()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.server = self.loop.run_until_complete(
+            serve(self._handler, self.host, self.port)
+        )
+        self.loop.run_forever()
+
+    def stop(self) -> None:  # pragma: no cover - IPC
+        if not self.loop:
+            return
+        if self.server:
+            self.loop.call_soon_threadsafe(self.server.close)
+        self.loop.call_soon_threadsafe(self.loop.stop)
 
 
 def find_chrome() -> str | None:
@@ -452,6 +462,9 @@ class BrowserInspector(QMainWindow):
                     f.write(f"{link}\n")
 
     def closeEvent(self, event) -> None:  # pragma: no cover - GUI
+        if self.ws_thread.isRunning():
+            self.ws_thread.stop()
+            self.ws_thread.wait()
         if self.driver:
             try:
                 self.driver.quit()
