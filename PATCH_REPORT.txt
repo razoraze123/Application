@@ -6,3 +6,5 @@ Corrections appliquées :
 - Mise à jour du README pour refléter la suppression des prototypes.
 - Ajout d'une suite minimale de tests dans `tests/` (import des modules et
   vérification d'une fonction utilitaire).
+- Suppression du paquet `scrapy` et rendu de `pyyaml` optionnel via
+  `extras_require` (installation possible avec `pip install .[yaml]`).

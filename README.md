@@ -43,6 +43,13 @@ cd Application
 pip install -r requirements.txt
 ```
 
+Si vous utilisez des fichiers de configuration YAML, installez l'option
+supplémentaire :
+
+```bash
+pip install .[yaml]
+```
+
 Ce fichier de dépendances est la référence unique pour l'ensemble du dépôt.
 
 ## Dépendances système
