@@ -20,3 +20,7 @@ Corrections appliquées :
   `self.driver` par des `RuntimeError` explicites, capture des exceptions
   `WebDriverException` et `URLError`, et validation des URLs avant le
   téléchargement des images.
+- Migration des sorties console vers `logging` pour `core/scraper.py`,
+  `core/image_scraper.py`, `main.py` et `application_definitif.py`.
+  Un `StreamHandler` redirigé vers `sys.stdout` assure la compatibilité
+  avec `EmittingStream` de l'interface graphique.
