@@ -8,3 +8,4 @@ python-dotenv
 tqdm
 flake8
 webdriver-manager
+qtawesome
