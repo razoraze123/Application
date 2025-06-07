@@ -3,7 +3,7 @@ import re
 import sys
 import time
 
-from PySide6.QtCore import Signal, QObject, QThread
+from PySide6.QtCore import Signal, QObject, QThread, Qt
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QSpinBox,
     QTabWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
     QTextEdit,
@@ -41,14 +42,17 @@ QLineEdit, QTextEdit {
     border-radius: 4px;
     padding: 4px;
 }
-QPushButton {
+QPushButton, QToolButton {
     background-color: #444;
     color: #eee;
     border: 1px solid #666;
-    border-radius: 6px;
-    padding: 6px 12px;
+    border-radius: 10px;
+    padding: 4px 8px;
 }
-QPushButton:hover { background-color: #555; }
+QPushButton:hover, QToolButton:hover { background-color: #555; }
+QPushButton:checked, QToolButton:checked {
+    background-color: #0078d7;
+}
 QProgressBar {
     background-color: #3c3c3c;
     border: 1px solid #555;
@@ -111,7 +115,9 @@ class ScrapingWorker(QThread):
         if actions.get("export"):
             fc_dir = self.session_paths["fiches"]
             src = os.path.join(fc_dir, "fiche concurrents")
-            txt_files = [f for f in os.listdir(src) if f.endswith(".txt")] if os.path.isdir(src) else []
+            txt_files = []
+            if os.path.isdir(src):
+                txt_files = [f for f in os.listdir(src) if f.endswith(".txt")]
             self.totals["export"] = len(txt_files)
 
         self.total = sum(self.totals.values()) or 1
@@ -140,7 +146,8 @@ class ScrapingWorker(QThread):
             self.increment_progress()
             return
         if line.strip().startswith("✅"):
-            self.update_action(self.completed_totals.get(self.current_action, 0) + 1)
+            current = self.completed_totals.get(self.current_action, 0)
+            self.update_action(current + 1)
             self.increment_progress()
 
     def update_action(self, value: int) -> None:
@@ -217,9 +224,15 @@ class MainWindow(QMainWindow):
     def _build_scraping_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setSpacing(4)
+        layout.setContentsMargins(6, 6, 6, 6)
 
-        self.file_info = QLabel("Aucun fichier chargé")
-        layout.addWidget(self.file_info)
+        self.total_links_label = QLabel("Nombre de liens total : 0")
+        f = self.total_links_label.font()
+        f.setPointSize(f.pointSize() + 2)
+        self.total_links_label.setFont(f)
+        self.total_links_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.total_links_label)
 
         range_layout = QHBoxLayout()
         self.min_id_edit = QLineEdit()
@@ -238,18 +251,34 @@ class MainWindow(QMainWindow):
         range_layout.addWidget(clear_sel)
         layout.addLayout(range_layout)
 
-        self.count_label = QLabel("0/0")
+        self.count_label = QLabel("IDs sélectionnés : 0/0")
+        self.count_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.count_label)
 
         action_layout = QHBoxLayout()
-        self.btn_variantes = QPushButton(qta.icon("fa5s.cubes"), "Variantes")
+        self.btn_variantes = QToolButton()
         self.btn_variantes.setCheckable(True)
-        self.btn_fiches = QPushButton(qta.icon("fa5s.file-alt"), "Fiches")
+        self.btn_variantes.setIcon(qta.icon("fa5s.cubes"))
+        self.btn_variantes.setText("Variantes")
+        self.btn_variantes.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+        self.btn_fiches = QToolButton()
         self.btn_fiches.setCheckable(True)
-        self.btn_export = QPushButton(qta.icon("fa5s.download"), "Export JSON")
+        self.btn_fiches.setIcon(qta.icon("fa5s.file-alt"))
+        self.btn_fiches.setText("Fiches")
+        self.btn_fiches.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+        self.btn_export = QToolButton()
         self.btn_export.setCheckable(True)
+        self.btn_export.setIcon(qta.icon("fa5s.download"))
+        self.btn_export.setText("Export JSON")
+        self.btn_export.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
         for b in (self.btn_variantes, self.btn_fiches, self.btn_export):
-            b.setStyleSheet("QPushButton:checked{background-color:#0078d7;}")
+            b.setStyleSheet(
+                "QToolButton {padding:2px 6px;}"
+                "QToolButton:checked{background-color:#0078d7;}"
+            )
         action_layout.addWidget(self.btn_variantes)
         action_layout.addWidget(self.btn_fiches)
         action_layout.addWidget(self.btn_export)
@@ -260,18 +289,22 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.launch_btn)
 
         self.progress = ProgressBar()
-        layout.addWidget(self.progress)
-
         status_layout = QHBoxLayout()
+        status_layout.setSpacing(4)
         self.status_var = QLabel()
         self.status_fiche = QLabel()
         self.status_export = QLabel()
         for lab in (self.status_var, self.status_fiche, self.status_export):
-            lab.setStyleSheet("background:#555;padding:2px 4px;border-radius:4px;")
+            lab.setStyleSheet(
+                "background:#555;padding:2px 6px;border-radius:8px;"
+            )
+        progress_line = QHBoxLayout()
+        progress_line.addWidget(self.progress, 1)
+        progress_line.addLayout(status_layout)
         status_layout.addWidget(self.status_var)
         status_layout.addWidget(self.status_fiche)
         status_layout.addWidget(self.status_export)
-        layout.addLayout(status_layout)
+        layout.addLayout(progress_line)
 
         self.time_label = QLabel("Temps écoulé: 0s | Temps restant estimé: ?")
         layout.addWidget(self.time_label)
@@ -347,20 +380,37 @@ La barre de progression et le minuteur indiquent l'avancement."""
     # ---------- Slots ----------
     def browse_links_settings(self) -> None:
         file_filter = "Text files (*.txt);;All files (*)"
-        path, _ = QFileDialog.getOpenFileName(self, "Fichier de liens", "", file_filter)
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Fichier de liens",
+            "",
+            file_filter,
+        )
         if path:
             self.links_path = path
             self.links_edit.setText(path)
             self.load_ids(path)
 
     def load_ids(self, path: str) -> None:
+        def natural_key(s: str) -> list:
+            return [
+                int(t) if t.isdigit() else t
+                for t in re.split(r"(\d+)", s)
+            ]
+
         self.id_url_map = charger_liens_avec_id_fichier(path)
-        self.all_ids = sorted(self.id_url_map.keys())
-        self.file_info.setText(f"{os.path.basename(path)} - {len(self.all_ids)} liens")
+        self.all_ids = sorted(self.id_url_map.keys(), key=natural_key)
+        self.total_links_label.setText(
+            f"Nombre de liens total : {len(self.all_ids)}"
+        )
         self.clear_selection()
 
     def browse_dir(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "Choisir le dossier de sortie", self.dir_edit.text())
+        path = QFileDialog.getExistingDirectory(
+            self,
+            "Choisir le dossier de sortie",
+            self.dir_edit.text(),
+        )
         if path:
             self.dir_edit.setText(path)
 
@@ -374,12 +424,15 @@ La barre de progression et le minuteur indiquent l'avancement."""
             i1 = self.all_ids.index(start)
             i2 = self.all_ids.index(end)
             if i1 <= i2:
-                self.selected_ids = self.all_ids[i1 : i2 + 1]
+                self.selected_ids = self.all_ids[i1:i2 + 1]
             else:
-                self.selected_ids = self.all_ids[i2 : i1 + 1]
+                self.selected_ids = self.all_ids[i2:i1 + 1]
         else:
             self.selected_ids = []
-        self.count_label.setText(f"{len(self.selected_ids)} / {len(self.all_ids)}")
+        self.count_label.setText(
+            "IDs sélectionnés : "
+            f"{len(self.selected_ids)} / {len(self.all_ids)}"
+        )
 
     def select_all_ids(self) -> None:
         if not self.all_ids:
@@ -392,7 +445,9 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.min_id_edit.clear()
         self.max_id_edit.clear()
         self.selected_ids = []
-        self.count_label.setText(f"0 / {len(self.all_ids)}")
+        self.count_label.setText(
+            f"IDs sélectionnés : 0 / {len(self.all_ids)}"
+        )
 
     def start_actions(self) -> None:
         if not self.links_path or not os.path.exists(self.links_path):
@@ -420,7 +475,13 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.status_var.setText("")
         self.status_fiche.setText("")
         self.status_export.setText("")
-        self.worker = ScrapingWorker(self.links_path, self.selected_ids, actions, batch_size, self.paths)
+        self.worker = ScrapingWorker(
+            self.links_path,
+            self.selected_ids,
+            actions,
+            batch_size,
+            self.paths,
+        )
         self.worker.progress.connect(self.update_progress)
         self.worker.action_progress.connect(self.update_action_status)
         self.worker.finished.connect(self.on_finished)
@@ -428,9 +489,17 @@ La barre de progression et le minuteur indiquent l'avancement."""
             self.update_action_status(action, 0, total)
         self.worker.start()
 
-    def update_progress(self, percent: int, elapsed: float, remaining: float) -> None:
+    def update_progress(
+        self,
+        percent: int,
+        elapsed: float,
+        remaining: float,
+    ) -> None:
         self.progress.setValue(percent)
-        txt = f"Temps écoulé: {int(elapsed)}s | Temps restant estimé: {int(remaining)}s"
+        txt = (
+            f"Temps écoulé: {int(elapsed)}s | "
+            f"Temps restant estimé: {int(remaining)}s"
+        )
         self.time_label.setText(txt)
 
     def update_action_status(self, action: str, done: int, total: int) -> None:
