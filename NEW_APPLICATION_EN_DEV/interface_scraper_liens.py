@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
 )
 
-from .scraper_liens import scrape_links
+from scraper_liens import scrape_links
 
 
 class ScrapingThread(QThread):
