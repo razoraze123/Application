@@ -5,3 +5,4 @@ beautifulsoup4
 webdriver-manager
 qtawesome
 qt-material
+scrapy
