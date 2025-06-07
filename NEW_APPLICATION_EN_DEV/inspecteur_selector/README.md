@@ -36,3 +36,12 @@ Exécutez `python inspecteur_selector.py` puis :
 ## Limitations
 
 Ce prototype sert uniquement de démonstrateur et n'inclut pas de gestion avancée des erreurs. L'XPath proposé est généré via un simple script JavaScript et peut ne pas couvrir tous les cas.
+
+## Extension Chrome
+
+Une extension minimaliste se trouve dans `chrome_extension/`. Pour la charger :
+
+1. Ouvrez Chrome et accédez à `chrome://extensions/`.
+2. Activez le mode développeur (coin supérieur droit).
+3. Cliquez sur *Charger l'extension non empaquetée* et sélectionnez le dossier `chrome_extension`.
+4. Lors d'un clic droit sur une page, l'extension enverra le sélecteur CSS et l'XPath de l'élément au serveur WebSocket (`ws://localhost:8765`).
