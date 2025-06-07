@@ -3,6 +3,9 @@
 import os
 import re
 import unicodedata
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def clean_name(name: str) -> str:

@@ -7,13 +7,15 @@ from urllib.parse import urlparse
 import re
 import unicodedata
 from typing import Iterable, List, Optional
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ImageScraper:
@@ -103,7 +105,7 @@ class ImageScraper:
             if not isinstance(urls, list):
                 urls = list(urls)
             for index, url in enumerate(urls, start=1):
-                print(f"\n🔍 Produit {index}/{total} : {url}")
+                logger.info("🔍 Produit %d/%d : %s", index, total, url)
                 try:
                     if self.driver is None:
                         raise RuntimeError("Driver not initialised")
@@ -118,7 +120,7 @@ class ImageScraper:
                     os.makedirs(folder, exist_ok=True)
 
                     images = list(self.get_image_elements())
-                    print(f"🖼️ {len(images)} image(s) trouvée(s)")
+                    logger.info("🖼️ %d image(s) trouvée(s)", len(images))
 
                     for i, img in enumerate(images):
                         src = img.get_attribute("src")
@@ -127,26 +129,28 @@ class ImageScraper:
                         parsed = urlparse(src)
                         if parsed.scheme not in ("http", "https"):
                             exit_code = 1
-                            print(
-                                f"   ❌ URL invalide pour image {i+1}: {src}"
+                            logger.warning(
+                                "   ❌ URL invalide pour image %d: %s",
+                                i + 1,
+                                src,
                             )
                             continue
                         filename = f"img_{i}.webp"
                         filepath = os.path.join(folder, filename)
                         try:
                             urllib.request.urlretrieve(src, filepath)
-                            print(f"   ✅ Image {i+1} → {filename}")
+                            logger.info("   ✅ Image %d → %s", i + 1, filename)
                         except URLError as err:
                             exit_code = 1
-                            msg = (
-                                "   ❌ Échec de téléchargement pour image "
-                                f"{i+1}: {err}"
+                            logger.error(
+                                "❌ Échec de téléchargement pour image %d: %s",
+                                i + 1,
+                                err,
                             )
-                            print(msg)
                 except WebDriverException as e:
                     # pragma: no cover - debug output
                     exit_code = 1
-                    print(f"❌ Erreur sur la page {url} : {e}")
+                    logger.error("❌ Erreur sur la page %s : %s", url, e)
         finally:
             if self.driver:
                 self.driver.quit()

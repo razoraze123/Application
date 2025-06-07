@@ -33,7 +33,6 @@ from PySide6.QtWidgets import (
     QHeaderView,
 )
 from PySide6.QtGui import QTextCursor
-
 import qtawesome as qta
 
 from core.scraper import (
@@ -44,7 +43,10 @@ from core.scraper import (
 from core.utils import charger_liens_avec_id_fichier
 from ui.widgets import AnimatedProgressBar
 from qt_material import apply_stylesheet
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 DARK_STYLE = """
 QMainWindow { background-color: #2b2b2b; color: #eee; }
@@ -188,11 +190,14 @@ class ScrapingWorker(QThread):
     def run(self) -> None:
         old_stdout = sys.stdout
         sys.stdout = self.emitter
+        for h in logging.getLogger().handlers:
+            if isinstance(h, logging.StreamHandler):
+                h.stream = sys.stdout
         self.start = time.time()
         try:
             id_url_map = charger_liens_avec_id_fichier(self.links_file)
             if not self.ids:
-                print("Aucun ID valide fourni. Abandon...")
+                logger.warning("Aucun ID valide fourni. Abandon...")
                 return
             if self.actions.get("variantes"):
                 self.current_action = "variantes"
@@ -213,6 +218,9 @@ class ScrapingWorker(QThread):
             self.current_action = None
             self.increment_progress()
             sys.stdout = old_stdout
+            for h in logging.getLogger().handlers:
+                if isinstance(h, logging.StreamHandler):
+                    h.stream = sys.stdout
             self.finished.emit()
 
 
@@ -651,6 +659,10 @@ La barre de progression et le minuteur indiquent l'avancement."""
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        handlers=[logging.StreamHandler(sys.stdout)],
+    )
     app = QApplication(sys.argv)
     settings = QSettings("scraping_app", "ui")
 
