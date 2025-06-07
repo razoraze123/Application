@@ -48,6 +48,7 @@ Lancez l’application :
 python application_definitif.py
 ```
 L’interface graphique s’ouvre : suivez les indications pour scraper les sites souhaités.
+`application_definitif.py` est l’interface officielle maintenue dans ce dépôt.
 
 Structure du projet (exemple)
 css
@@ -74,6 +75,7 @@ Options avancées dans l’interface
 Note :
 Ce projet est à usage strictement personnel et n’est pas destiné à une diffusion publique.
 
-Le dossier `NEW_APPLICATION_EN_DEV/` contient des scripts prototypes et ne constitue pas l’application officielle.
+Le dossier `NEW_APPLICATION_EN_DEV/` contient des scripts prototypes (comme
+`interface.py` ou `gui.py`) et ne constitue pas l’application officielle.
 
 # Application

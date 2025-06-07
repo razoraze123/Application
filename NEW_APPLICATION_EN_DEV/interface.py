@@ -1,3 +1,9 @@
+"""Prototype GUI script (deprecated).
+
+This file is kept for reference and is not part of the official
+application. The stable interface is ``application_definitif.py``.
+"""
+
 import os
 import re
 import sys
