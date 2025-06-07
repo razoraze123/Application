@@ -290,7 +290,6 @@ def export_fiches_concurrents_json(
         print(f"    ➡️ Batch sauvegardé : {nom_fichier_sortie}")
 
     print(
-        "\n✅ Export JSON terminé avec lots de 5 produits. "
-        "Fichiers créés dans :",
-        dossier_sortie,
+        f"\n✅ Export JSON terminé avec lots de {taille_batch} produits. "
+        f"Fichiers créés dans : {dossier_sortie}"
     )
