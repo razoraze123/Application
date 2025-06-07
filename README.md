@@ -64,22 +64,25 @@ L’interface graphique s’ouvre : suivez les indications pour scraper les si
 `application_definitif.py` est l’interface officielle maintenue dans ce dépôt.
 
 ## Application du thème Material Design avec qt-material
+### Ce qui a été fait
+Le projet utilise **qt-material** pour donner à l'interface un style Material Design.
 
-
+### Code d'exemple
 ```python
 from qt_material import apply_stylesheet
 app = QApplication(sys.argv)
 apply_stylesheet(app, theme='dark_purple.xml')
 ```
 
-Pour changer de thème, remplacez `dark_purple.xml` par l’un des nombreux thèmes fournis
-dans qt-material (par exemple : `dark_amber.xml`, `dark_blue.xml`, `light_pink.xml`, etc.).
+### Explication utilisateur
+Pour changer de thème, remplacez `dark_purple.xml` par l’un des nombreux thèmes fournis dans qt-material (par exemple : `dark_amber.xml`, `dark_blue.xml`, `light_pink.xml`, etc.).
 
 ## Boutons et icônes
 
-Les boutons de l'interface utilisent eux aussi le style qt-material pour rester cohérents avec le thème choisi.
-On peut facilement ajouter une icône QtAwesome lors de la création :
+### Ce qui a été fait
+Les boutons utilisent le style qt-material pour rester cohérents avec le thème. Une icône QtAwesome peut être ajoutée facilement.
 
+### Code d'exemple
 ```python
 import qtawesome as qta
 from PySide6.QtWidgets import QPushButton
@@ -87,12 +90,15 @@ from PySide6.QtWidgets import QPushButton
 btn = QPushButton(qta.icon('fa5s.play'), "Lancer")
 ```
 
-De même, tous les champs de saisie (QLineEdit, QSpinBox, QSlider…) partagent un style Material défini dans les fichiers QSS du projet.
+### Explication utilisateur
+Changez le nom de l'icône (`fa5s.play`) ou le texte du bouton selon vos besoins.
 
 ## Interface et navigation
 
-La fenêtre principale comporte maintenant une barre latérale verticale qui regroupe les trois onglets :
+### Ce qui a été fait
+Une barre latérale verticale regroupe maintenant les onglets *Scraping*, *Paramètres* et *Guide*.
 
+### Code d'exemple
 ```
 +-----------+-----------------------+
 | Scraping  |                       |
@@ -101,9 +107,8 @@ La fenêtre principale comporte maintenant une barre latérale verticale qui reg
 +-----------+-----------------------+
 ```
 
-Sélectionnez simplement un onglet dans la barre pour afficher son contenu à droite. Cela
-permet de naviguer rapidement entre les actions de scraping, les réglages et le guide
-d'utilisation.
+### Explication utilisateur
+Choisissez simplement un onglet dans la barre pour afficher son contenu et naviguer rapidement dans l'application.
 
 Structure du projet (exemple)
 css
@@ -129,19 +134,23 @@ Options avancées dans l’interface
 
 ## Paramètres avancés et customisation
 
-L'interface propose déjà un bouton pour activer le mode sombre ou clair.
-Les prochaines versions permettront de personnaliser davantage le thème
-grâce à des paramètres supplémentaires (comme la police ou la densité de
-l'interface). Ces réglages seront stockés dans la configuration et transmis
-à `qt-material` via l'argument `extra`.
+### Ce qui a été fait
+Un bouton permet déjà d'activer le mode sombre ou clair. D'autres réglages comme la police et la densité seront ajoutés.
+
+### Code d'exemple
+```python
+apply_stylesheet(app, theme='dark_purple.xml', extra={'font_family': 'Roboto', 'density_scale': '0'})
+```
+
+### Explication utilisateur
+Les paramètres seront stockés dans la configuration puis passés à `qt-material` via l'argument `extra` pour personnaliser le thème.
+
+# Application
 
 Note :
 Ce projet est à usage strictement personnel et n’est pas destiné à une diffusion publique.
 
-Le dossier `NEW_APPLICATION_EN_DEV/` contient des scripts prototypes (tel que
-`interface_dev.py`) et ne constitue pas l’application officielle.
-
-# Application
+Le dossier `NEW_APPLICATION_EN_DEV/` contient des scripts prototypes (tel que `interface_dev.py`) et ne constitue pas l’application officielle.
 
 📦 css-selector-generator
 Ce dossier contient une librairie open source JavaScript embarquée pour générer automatiquement des sélecteurs CSS uniques à partir d’un élément du DOM.
@@ -188,9 +197,20 @@ Journal
 
 ## Conseils pour personnaliser l’UI responsive
 
-- Utilisez systématiquement les `QVBoxLayout` et `QHBoxLayout` pour que les widgets s’adaptent automatiquement à la taille de la fenêtre.
-- La méthode `setSectionResizeMode(QHeaderView.Stretch)` sur l’entête du tableau permet d’éviter une barre de défilement horizontale.
-- Testez le redimensionnement de la fenêtre pour vérifier que tous les éléments restent visibles.
-- Modifiez les fichiers `style.qss` et `light.qss` pour adapter la palette de couleurs ou la police tout en conservant la compatibilité avec **qt-material**.
+### Ce qui a été fait
+Des mises en page flexibles assurent que les widgets s'adaptent à la taille de la fenêtre.
 
+### Code d'exemple
+- Utilisez `QVBoxLayout` et `QHBoxLayout` pour empiler les éléments.
+- `setSectionResizeMode(QHeaderView.Stretch)` évite une barre de défilement horizontale.
 
+### Explication utilisateur
+Modifiez les fichiers `style.qss` et `light.qss` pour ajuster la palette de couleurs ou la police tout en conservant la compatibilité avec **qt-material**.
+
+## Récapitulatif des étapes et options de personnalisation
+
+1. **Thème Material Design** : choisir un fichier de thème dans qt-material.
+2. **Icônes QtAwesome** : changer le nom de l'icône et le texte du bouton.
+3. **Navigation** : modifier la barre latérale pour ajouter ou réordonner les onglets.
+4. **Paramètres avancés** : utiliser l'argument `extra` pour la police (`font_family`) ou la densité (`density_scale`).
+5. **UI responsive** : ajuster les fichiers QSS pour la palette de couleurs et la police.
