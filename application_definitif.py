@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QCheckBox,
+    QSlider,
     QSpinBox,
     QTabWidget,
     QToolButton,
@@ -371,6 +372,17 @@ class MainWindow(QMainWindow):
         self.batch_spin = QSpinBox()
         self.batch_spin.setRange(1, 10)
         self.batch_spin.setValue(5)
+
+        self.batch_slider = QSlider(Qt.Horizontal)
+        self.batch_slider.setRange(
+            self.batch_spin.minimum(), self.batch_spin.maximum()
+        )
+        self.batch_slider.setValue(self.batch_spin.value())
+
+        self.batch_spin.valueChanged.connect(self.batch_slider.setValue)
+        self.batch_slider.valueChanged.connect(self.batch_spin.setValue)
+
+        batch_layout.addWidget(self.batch_slider, 1)
         batch_layout.addWidget(self.batch_spin)
         layout.addLayout(batch_layout)
 
