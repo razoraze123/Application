@@ -16,3 +16,7 @@ Corrections appliquées :
   `core/utils.py`.
 - Factorisation de `scrap_produits_par_ids` et `scrap_fiches_concurrents` en
   petits helpers privés (extraction du prix, des variantes, parsing HTML).
+- Amélioration de `ImageScraper` : remplacement des assertions sur
+  `self.driver` par des `RuntimeError` explicites, capture des exceptions
+  `WebDriverException` et `URLError`, et validation des URLs avant le
+  téléchargement des images.

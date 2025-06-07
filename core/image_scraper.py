@@ -2,6 +2,8 @@ import os
 import time
 import random
 import urllib.request
+from urllib.error import URLError
+from urllib.parse import urlparse
 import re
 import unicodedata
 from typing import Iterable, List, Optional
@@ -10,6 +12,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -82,7 +85,8 @@ class ImageScraper:
 
     def get_image_elements(self) -> Iterable:
         """Return image elements found on the page. Overridable."""
-        assert self.driver is not None
+        if self.driver is None:
+            raise RuntimeError("Driver not initialised")
         return self.driver.find_elements(By.CSS_SELECTOR, self.selector)
 
     # ------------------------------------------------------------------
@@ -101,7 +105,8 @@ class ImageScraper:
             for index, url in enumerate(urls, start=1):
                 print(f"\n🔍 Produit {index}/{total} : {url}")
                 try:
-                    assert self.driver is not None
+                    if self.driver is None:
+                        raise RuntimeError("Driver not initialised")
                     self.driver.get(url)
                     time.sleep(random.uniform(2.5, 4.5))
 
@@ -119,19 +124,27 @@ class ImageScraper:
                         src = img.get_attribute("src")
                         if not src:
                             continue
+                        parsed = urlparse(src)
+                        if parsed.scheme not in ("http", "https"):
+                            exit_code = 1
+                            print(
+                                f"   ❌ URL invalide pour image {i+1}: {src}"
+                            )
+                            continue
                         filename = f"img_{i}.webp"
                         filepath = os.path.join(folder, filename)
                         try:
                             urllib.request.urlretrieve(src, filepath)
                             print(f"   ✅ Image {i+1} → {filename}")
-                        except Exception as err:
+                        except URLError as err:
                             exit_code = 1
                             msg = (
                                 "   ❌ Échec de téléchargement pour image "
                                 f"{i+1}: {err}"
                             )
                             print(msg)
-                except Exception as e:  # pragma: no cover - debug output
+                except WebDriverException as e:
+                    # pragma: no cover - debug output
                     exit_code = 1
                     print(f"❌ Erreur sur la page {url} : {e}")
         finally:
