@@ -14,7 +14,10 @@ def scrape_links(url: str, selector: str) -> list[str]:
     """
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=options,
+    )
 
     links: list[str] = []
     try:

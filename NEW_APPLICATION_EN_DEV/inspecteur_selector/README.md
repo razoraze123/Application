@@ -89,3 +89,18 @@ Si aucun sélecteur n'est reçu :
   pare‑feu ou un logiciel de sécurité.
 * Fermez toutes les fenêtres Chrome/Chromium avant de relancer le programme,
   afin que Selenium puisse ouvrir une nouvelle instance avec le bon port.
+
+## Modules de scraping
+
+Le navigateur s'appuie sur des fonctions de scraping externes. Par défaut,
+`scraper_liens.scrape_links` est utilisé. Vous pouvez ajouter vos propres
+modules en définissant la variable d'environnement `INSPECTEUR_SCRAPERS` sous la
+forme `nom=module:fonction` (séparés par des virgules).
+
+```bash
+INSPECTEUR_SCRAPERS="Liens=scraper_liens:scrape_links,Images=mon_module:grab"
+```
+
+Chaque fonction doit accepter `url` et `selector` et retourner la liste des
+liens extraits. Les modules ainsi déclarés apparaîtront dans la liste déroulante
+de l'interface.

@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Protocol
+import importlib
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QAction, QClipboard
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QHBoxLayout,
+    QComboBox,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -28,34 +30,62 @@ from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from websockets.server import serve
 
-# Import du module de scraping existant
-# Lorsque le script est exécuté directement, l'import relatif ci-dessous ne
-# fonctionne pas car `__package__` est vide. On ajoute alors dynamiquement le
-# dossier parent au `sys.path` pour pouvoir importer ``scraper_liens``.
-if __package__:
-    from ..scraper_liens import scrape_links  # type: ignore
-else:  # exécution directe du fichier
-    CURRENT_DIR = Path(__file__).resolve().parent
-    PARENT_DIR = CURRENT_DIR.parent
-    sys.path.insert(0, str(PARENT_DIR))
-    from scraper_liens import scrape_links
+
+class Scraper(Protocol):
+    """Callable implementing a scraping function."""
+
+    def __call__(self, url: str, selector: str) -> list[str]:
+        ...
 
 
 class ScrapingThread(QThread):
     finished = Signal(list)
     error = Signal(str)
 
-    def __init__(self, url: str, selector: str) -> None:
+    def __init__(self, scraper: Scraper, url: str, selector: str) -> None:
         super().__init__()
+        self.scraper = scraper
         self.url = url
         self.selector = selector
 
     def run(self) -> None:  # pragma: no cover - threads hard to test
         try:
-            links = scrape_links(self.url, self.selector)
+            links = self.scraper(self.url, self.selector)
             self.finished.emit(links)
         except Exception as exc:  # pragma: no cover - show error
             self.error.emit(str(exc))
+
+
+def load_scrapers() -> Dict[str, Scraper]:
+    """Load available scraping callables from ENV.
+
+    Environment variable ``INSPECTEUR_SCRAPERS`` accepts a comma separated
+    list of ``name=module:function`` entries. If not provided, the default
+    ``scraper_liens.scrape_links`` is used.
+    """
+    env = os.getenv("INSPECTEUR_SCRAPERS")
+    specs = [s.strip() for s in env.split(",") if s.strip()] if env else []
+    if not specs:
+        default_mod = "..scraper_liens" if __package__ else "scraper_liens"
+        specs = [f"Liens={default_mod}:scrape_links"]
+    scrapers: Dict[str, Scraper] = {}
+    for spec in specs:
+        if "=" in spec:
+            name, target = spec.split("=", 1)
+        else:
+            target = spec
+            name = spec.split(":")[-1]
+        try:
+            mod_name, func_name = target.split(":")
+            if mod_name.startswith(".") and __package__:
+                mod = importlib.import_module(mod_name, __package__)
+            else:
+                mod = importlib.import_module(mod_name)
+            func = getattr(mod, func_name)
+            scrapers[name] = func  # type: ignore[assignment]
+        except Exception:
+            continue
+    return scrapers
 
 
 class SelectorServer(QThread):
@@ -162,10 +192,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
 
 class BrowserInspector(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, scrapers: Dict[str, Scraper]) -> None:
         super().__init__()
         self.language = "fr"
         self.setWindowTitle("Inspecteur de Sélecteur")
+        self.scrapers = scrapers
+        self.current_scraper = next(iter(scrapers.values()))
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -178,6 +210,15 @@ class BrowserInspector(QMainWindow):
         url_layout.addWidget(self.url_edit)
         url_layout.addWidget(self.load_button)
         vlayout.addLayout(url_layout)
+
+        scraper_layout = QHBoxLayout()
+        scraper_layout.addWidget(QLabel("Scraper:"))
+        self.scraper_combo = QComboBox()
+        for name in scrapers:
+            self.scraper_combo.addItem(name)
+        self.scraper_combo.currentTextChanged.connect(self.on_scraper_changed)
+        scraper_layout.addWidget(self.scraper_combo)
+        vlayout.addLayout(scraper_layout)
 
         self.driver: webdriver.Chrome | None = None
         self.ws_thread = SelectorServer()
@@ -219,6 +260,9 @@ class BrowserInspector(QMainWindow):
 
         self._setup_menu()
         self.set_language("fr")
+
+    def on_scraper_changed(self, name: str) -> None:
+        self.current_scraper = self.scrapers.get(name, self.current_scraper)
 
     # ----- internationalisation -----
     def set_language(self, lang: str) -> None:
@@ -361,7 +405,7 @@ class BrowserInspector(QMainWindow):
             return
         self.scrape_button.setEnabled(False)
         self.result_edit.clear()
-        self.thread = ScrapingThread(url, selector)
+        self.thread = ScrapingThread(self.current_scraper, url, selector)
         self.thread.finished.connect(self.show_results)
         self.thread.error.connect(self.show_error)
         self.thread.start()
@@ -418,7 +462,7 @@ class BrowserInspector(QMainWindow):
 
 def main() -> None:
     app = QApplication(sys.argv)
-    win = BrowserInspector()
+    win = BrowserInspector(load_scrapers())
     win.resize(1000, 700)
     win.show()
     sys.exit(app.exec())
