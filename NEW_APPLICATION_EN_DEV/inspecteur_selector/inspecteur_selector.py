@@ -24,7 +24,16 @@ from PySide6.QtWidgets import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 # Import du module de scraping existant
-from ..scraper_liens import scrape_links
+# Lorsque le script est exécuté directement, l'import relatif ci-dessous ne
+# fonctionne pas car `__package__` est vide. On ajoute alors dynamiquement le
+# dossier parent au `sys.path` pour pouvoir importer ``scraper_liens``.
+if __package__:
+    from ..scraper_liens import scrape_links  # type: ignore
+else:  # exécution directe du fichier
+    CURRENT_DIR = Path(__file__).resolve().parent
+    PARENT_DIR = CURRENT_DIR.parent
+    sys.path.insert(0, str(PARENT_DIR))
+    from scraper_liens import scrape_links
 
 
 class ScrapingThread(QThread):
