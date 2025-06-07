@@ -3,6 +3,7 @@ import re
 import json
 import time
 import random
+from utils.logger import setup_logger
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -11,6 +12,8 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 from .utils import clean_name, clean_filename
+
+logger = setup_logger("scraper", os.path.join(os.getcwd(), "scraping.log"))
 
 
 def _get_driver(headless: bool = False) -> webdriver.Chrome:
@@ -43,14 +46,14 @@ def scrap_produits_par_ids(
     driver = _get_driver(headless=True)
     woocommerce_rows = []
 
-    print(f"\n🚀 Début du scraping de {len(ids_selectionnes)} liens...\n")
+    logger.info(f"\n🚀 Début du scraping de {len(ids_selectionnes)} liens...\n")
     for idx, id_produit in enumerate(ids_selectionnes, start=1):
         url = id_url_map.get(id_produit)
         if not url:
-            print(f"❌ ID introuvable dans le fichier : {id_produit}")
+            logger.error(f"❌ ID introuvable dans le fichier : {id_produit}")
             continue
 
-        print(f"🔎 [{idx}/{len(ids_selectionnes)}] {id_produit} → {url}")
+        logger.info(f"🔎 [{idx}/{len(ids_selectionnes)}] {id_produit} → {url}")
         try:
             driver.get(url)
             time.sleep(random.uniform(2.5, 3.5))
@@ -145,13 +148,13 @@ def scrap_produits_par_ids(
                 })
 
         except Exception as e:
-            print(f"❌ Erreur sur {url} → {e}\n")
+            logger.error(f"❌ Erreur sur {url} → {e}\n")
             continue
 
     driver.quit()
     df = pd.DataFrame(woocommerce_rows)
     df.to_excel(fichier_excel, index=False)
-    print(f"\n📁 Données sauvegardées dans : {fichier_excel}")
+    logger.info(f"\n📁 Données sauvegardées dans : {fichier_excel}")
 
 
 def scrap_fiches_concurrents(
@@ -169,12 +172,12 @@ def scrap_fiches_concurrents(
     for idx, id_produit in enumerate(ids_selectionnes, start=1):
         url = id_url_map.get(id_produit)
         if not url:
-            print(f"\n❌ ID introuvable dans le fichier : {id_produit}")
+            logger.error(f"\n❌ ID introuvable dans le fichier : {id_produit}")
             recap_data.append(("?", "?", id_produit, "ID non trouvé"))
             continue
 
-        print(f"\n📦 {idx} / {total}")
-        print(f"🔗 {url} — ", end="")
+        logger.info(f"\n📦 {idx} / {total}")
+        logger.info(f"🔗 {url} — ")
 
         try:
             driver.get(url)
@@ -219,10 +222,10 @@ def scrap_fiches_concurrents(
             with open(txt_path, "w", encoding="utf-8") as f2:
                 f2.write(txt_content)
 
-            print(f"✅ Extraction OK ({filename})")
+            logger.info(f"✅ Extraction OK ({filename})")
             recap_data.append((filename, title, url, "Extraction OK"))
         except Exception as e:
-            print(f"❌ Extraction Échec — {str(e)}")
+            logger.error(f"❌ Extraction Échec — {str(e)}")
             recap_data.append(("?", "?", url, "Extraction Échec"))
 
     df = pd.DataFrame(
@@ -231,9 +234,9 @@ def scrap_fiches_concurrents(
     )
     df.to_excel(recap_excel_path, index=False)
     driver.quit()
-    print("\n🎉 Extraction terminée. Résultats enregistrés dans :")
-    print(f"- 📁 Fiches : {save_directory}")
-    print(f"- 📊 Récapitulatif : {recap_excel_path}")
+    logger.info("\n🎉 Extraction terminée. Résultats enregistrés dans :")
+    logger.info(f"- 📁 Fiches : {save_directory}")
+    logger.info(f"- 📊 Récapitulatif : {recap_excel_path}")
 
 
 def export_fiches_concurrents_json(
@@ -261,7 +264,7 @@ def export_fiches_concurrents_json(
         batch = fichiers_txt[i:i + taille_batch]
         data_batch = []
 
-        print(f"\n🔹 Batch {i // taille_batch + 1} : {len(batch)} fichiers")
+        logger.info(f"\n🔹 Batch {i // taille_batch + 1} : {len(batch)} fichiers")
         for fichier in batch:
             chemin = os.path.join(dossier_source, fichier)
             try:
@@ -276,9 +279,9 @@ def export_fiches_concurrents_json(
                     "h1": h1,
                     "html": contenu.strip()
                 })
-                print(f"  ✅ {fichier} — h1: {h1[:50]}...")
+                logger.info(f"  ✅ {fichier} — h1: {h1[:50]}...")
             except Exception as e:
-                print(f"  ⚠️ Erreur lecture {fichier}: {e}")
+                logger.warning(f"  ⚠️ Erreur lecture {fichier}: {e}")
                 continue
             id_global += 1
 
@@ -287,9 +290,9 @@ def export_fiches_concurrents_json(
         with open(chemin_sortie, "w", encoding="utf-8") as f_json:
             json.dump(data_batch, f_json, ensure_ascii=False, indent=2)
 
-        print(f"    ➡️ Batch sauvegardé : {nom_fichier_sortie}")
+        logger.info(f"    ➡️ Batch sauvegardé : {nom_fichier_sortie}")
 
-    print(
+    logger.info(
         f"\n✅ Export JSON terminé avec lots de {taille_batch} produits. "
         f"Fichiers créés dans : {dossier_sortie}"
     )

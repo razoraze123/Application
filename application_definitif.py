@@ -44,6 +44,9 @@ from core.scraper import (
 from core.utils import charger_liens_avec_id_fichier
 from ui.widgets import AnimatedProgressBar
 from qt_material import apply_stylesheet
+from utils.logger import setup_logger
+
+logger = setup_logger("application", os.path.join(os.getcwd(), "scraping.log"))
 
 
 DARK_STYLE = """
@@ -192,7 +195,7 @@ class ScrapingWorker(QThread):
         try:
             id_url_map = charger_liens_avec_id_fichier(self.links_file)
             if not self.ids:
-                print("Aucun ID valide fourni. Abandon...")
+                logger.warning("Aucun ID valide fourni. Abandon...")
                 return
             if self.actions.get("variantes"):
                 self.current_action = "variantes"

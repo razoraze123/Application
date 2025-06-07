@@ -4,6 +4,7 @@ import random
 import urllib.request
 import re
 import unicodedata
+from utils.logger import setup_logger
 from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -40,13 +41,14 @@ if args.config:
     try:
         config.update(load_config(args.config))
     except Exception as e:
-        print(f"\u26a0\ufe0f Impossible de charger la configuration: {e}")
+        logger.warning(f"\u26a0\ufe0f Impossible de charger la configuration: {e}")
 
 chrome_driver_path = config["chrome_driver_path"]
 chrome_binary_path = config["chrome_binary_path"]
 ROOT_FOLDER = config["root_folder"]
 
 os.makedirs(ROOT_FOLDER, exist_ok=True)
+logger = setup_logger("scraper_images", os.path.join(ROOT_FOLDER, "scraper.log"))
 
 # === IMPORT DES SUFFIXES PERSONNALISÉS ===
 DEFAULT_SUFFIXES = {
@@ -124,10 +126,10 @@ driver = create_driver()
 failed_images = []
 
 for index, url in enumerate(product_urls):
-    print(f"\n🔍 Produit {index + 1}/{len(product_urls)} : {url}")
+    logger.info(f"\n🔍 Produit {index + 1}/{len(product_urls)} : {url}")
 
     if index > 0 and index % 25 == 0:
-        print("🔄 Redémarrage du navigateur pour libérer la mémoire...")
+        logger.info("🔄 Redémarrage du navigateur pour libérer la mémoire...")
         driver.quit()
         time.sleep(3)
         driver = create_driver()
@@ -144,7 +146,7 @@ for index, url in enumerate(product_urls):
         os.makedirs(folder, exist_ok=True)
 
         images = driver.find_elements(By.CSS_SELECTOR, selector)
-        print(f"🖼️ {len(images)} image(s) trouvée(s)")
+        logger.info(f"🖼️ {len(images)} image(s) trouvée(s)")
 
         for i, img in enumerate(images):
             src = img.get_attribute("src")
@@ -163,31 +165,31 @@ for index, url in enumerate(product_urls):
 
                 os.rename(temp_path, final_path)
 
-                print(f"   ✅ Image {i+1} → {filename}")
-                print(f"      ↪️ Texte ALT : {alt_text}")
+                logger.info(f"   ✅ Image {i+1} → {filename}")
+                logger.info(f"      ↪️ Texte ALT : {alt_text}")
                 time.sleep(random.uniform(1, 2))
 
             except Exception as img_err:
-                print(f"   ❌ Échec de téléchargement pour image {i+1} : {img_err}")
+                logger.error(f"   ❌ Échec de téléchargement pour image {i+1} : {img_err}")
                 failed_images.append((url, src))
 
-        print(f"📁 Téléchargement terminé pour : {product_folder_name}")
+        logger.info(f"📁 Téléchargement terminé pour : {product_folder_name}")
 
     except Exception as e:
-        print(f"❌ Erreur sur la page {url} : {e}")
+        logger.error(f"❌ Erreur sur la page {url} : {e}")
 
-    print("-" * 80)
+    logger.info("-" * 80)
     time.sleep(random.uniform(1.5, 3))
 
 driver.quit()
 
 # === RÉSUMÉ DES ERREURS ===
 if failed_images:
-    print("\n❗Images échouées :")
+    logger.warning("\n❗Images échouées :")
     for url, src in failed_images:
-        print(f"Produit : {url} → Image : {src}")
-    print(f"Total échouées : {len(failed_images)}")
+        logger.warning(f"Produit : {url} → Image : {src}")
+    logger.warning(f"Total échouées : {len(failed_images)}")
 else:
-    print("\n✅ Toutes les images ont été téléchargées avec succès.")
+    logger.info("\n✅ Toutes les images ont été téléchargées avec succès.")
 
-print("\n🎯 SCRIPT TERMINÉ.")
+logger.info("\n🎯 SCRIPT TERMINÉ.")

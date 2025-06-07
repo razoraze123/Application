@@ -1,5 +1,6 @@
 import os
 from core.utils import charger_liens_avec_id, extraire_ids_depuis_input
+from utils.logger import setup_logger
 from core.scraper import (
     scrap_produits_par_ids,
     scrap_fiches_concurrents,
@@ -18,7 +19,8 @@ def demander_base_dir() -> str:
 
 
 if __name__ == "__main__":
-    print("Bienvenue dans l'application de scraping!")
+    logger = setup_logger("main", os.path.join(os.getcwd(), "scraping.log"))
+    logger.info("Bienvenue dans l'application de scraping!")
     base_dir = demander_base_dir()
 
     id_url_map = charger_liens_avec_id(base_dir)
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     ids_selectionnes = extraire_ids_depuis_input(plage_input)
 
     if not ids_selectionnes:
-        print("\u26d4 Aucun ID valide fourni. Arr\u00eat du script.")
+        logger.warning("\u26d4 Aucun ID valide fourni. Arr\u00eat du script.")
         exit()
 
     if input(
@@ -54,7 +56,7 @@ if __name__ == "__main__":
             ).strip()
             taille_batch = int(taille) if taille else 5
         except Exception:
-            print(
+            logger.warning(
                 "\u26a0\ufe0f Valeur invalide, on utilise la taille 5 par"
                 " d\u00e9faut."
             )
