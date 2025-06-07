@@ -43,8 +43,7 @@ cd Application
 pip install -r requirements.txt
 ```
 
-Ce fichier de dépendances est la référence unique pour l'ensemble du dépôt,
-y compris les prototypes présents dans `NEW_APPLICATION_EN_DEV/`.
+Ce fichier de dépendances est la référence unique pour l'ensemble du dépôt.
 
 ## Dépendances système
 Avant d'utiliser l'application sous Linux, installez les bibliothèques système nécessaires pour PySide6 :
@@ -150,7 +149,7 @@ Les paramètres seront stockés dans la configuration puis passés à `qt-materi
 Note :
 Ce projet est à usage strictement personnel et n’est pas destiné à une diffusion publique.
 
-Le dossier `NEW_APPLICATION_EN_DEV/` contient des scripts prototypes (tel que `interface_dev.py`) et ne constitue pas l’application officielle.
+Des scripts prototypes étaient présents dans `NEW_APPLICATION_EN_DEV/`. Ce dossier a été supprimé pour clarifier la version officielle.
 
 📦 css-selector-generator
 Ce dossier contient une librairie open source JavaScript embarquée pour générer automatiquement des sélecteurs CSS uniques à partir d’un élément du DOM.

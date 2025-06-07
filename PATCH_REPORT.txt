@@ -1,0 +1,8 @@
+Corrections appliquées :
+- Suppression du dossier de prototypes `NEW_APPLICATION_EN_DEV`.
+- Nettoyage de `requirements.txt` pour ne conserver que les dépendances utiles :
+  PySide6, selenium, pandas, beautifulsoup4, webdriver-manager, qtawesome et
+  qt-material.
+- Mise à jour du README pour refléter la suppression des prototypes.
+- Ajout d'une suite minimale de tests dans `tests/` (import des modules et
+  vérification d'une fonction utilitaire).

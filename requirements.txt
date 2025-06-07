@@ -1,13 +1,7 @@
 pyside6
-requests
 selenium
 pandas
 beautifulsoup4
-lxml
-python-dotenv
-tqdm
-flake8
 webdriver-manager
 qtawesome
 qt-material
-websockets
