@@ -2,6 +2,8 @@ import os
 import re
 import sys
 import time
+from PySide6.QtWidgets import QCheckBox
+
 
 from PySide6.QtCore import Qt, Signal, QObject, QThread
 from PySide6.QtGui import QAction
