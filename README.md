@@ -65,6 +65,7 @@ L’interface graphique s’ouvre : suivez les indications pour scraper les si
 
 ## Application du thème Material Design avec qt-material
 
+
 ```python
 from qt_material import apply_stylesheet
 app = QApplication(sys.argv)
@@ -73,6 +74,22 @@ apply_stylesheet(app, theme='dark_purple.xml')
 
 Pour changer de thème, remplacez `dark_purple.xml` par l’un des nombreux thèmes fournis
 dans qt-material (par exemple : `dark_amber.xml`, `dark_blue.xml`, `light_pink.xml`, etc.).
+
+## Interface et navigation
+
+La fenêtre principale comporte maintenant une barre latérale verticale qui regroupe les trois onglets :
+
+```
++-----------+-----------------------+
+| Scraping  |                       |
+| Paramètres|  Contenu affiché ici  |
+| Guide     |                       |
++-----------+-----------------------+
+```
+
+Sélectionnez simplement un onglet dans la barre pour afficher son contenu à droite. Cela
+permet de naviguer rapidement entre les actions de scraping, les réglages et le guide
+d'utilisation.
 
 Structure du projet (exemple)
 css

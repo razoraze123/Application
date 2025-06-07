@@ -230,6 +230,7 @@ class MainWindow(QMainWindow):
         self.selected_ids: list[str] = []
 
         tabs = QTabWidget()
+        tabs.setTabPosition(QTabWidget.West)
         tabs.addTab(self._build_scraping_tab(), "Scraping")
         tabs.addTab(self._build_settings_tab(), "Paramètres")
         tabs.addTab(self._build_guide_tab(), "Guide")
