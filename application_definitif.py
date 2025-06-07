@@ -8,8 +8,6 @@ from PySide6.QtCore import (
     QObject,
     QThread,
     Qt,
-    QPropertyAnimation,
-    QEasingCurve,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -19,7 +17,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMessageBox,
-    QProgressBar,
     QPushButton,
     QCheckBox,
     QSpinBox,
@@ -38,6 +35,7 @@ from core.scraper import (
     scrap_produits_par_ids,
 )
 from core.utils import charger_liens_avec_id_fichier
+from ui.ui_utils import AnimatedProgressBar
 
 DARK_STYLE = """
 QMainWindow { background-color: #2b2b2b; color: #eee; }
@@ -300,7 +298,7 @@ class MainWindow(QMainWindow):
         self.launch_btn.clicked.connect(self.start_actions)
         layout.addWidget(self.launch_btn)
 
-        self.progress = ProgressBar()
+        self.progress = AnimatedProgressBar()
         status_layout = QHBoxLayout()
         status_layout.setSpacing(4)
         self.status_var = QLabel()
@@ -527,21 +525,6 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.launch_btn.setEnabled(True)
         QMessageBox.information(self, "Terminé", "Opérations terminées")
 
-
-class ProgressBar(QProgressBar):
-    def __init__(self) -> None:
-        super().__init__()
-        self.setRange(0, 100)
-        self.setValue(0)
-        self._anim = QPropertyAnimation(self, b"value")
-        self._anim.setDuration(300)
-        self._anim.setEasingCurve(QEasingCurve.InOutCubic)
-
-    def set_animated_value(self, value: int) -> None:
-        self._anim.stop()
-        self._anim.setStartValue(self.value())
-        self._anim.setEndValue(value)
-        self._anim.start()
 
 
 def main() -> None:
