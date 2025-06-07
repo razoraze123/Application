@@ -10,11 +10,31 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import importlib.util
+import argparse
+from config_loader import load_config
 
 # === CONFIGURATION ===
-chrome_driver_path = r"C:\Users\Lamine\Desktop\woocommerce\code\chromdrivers 137\chromedriver-win64\chromedriver.exe"
-chrome_binary_path = r"C:\Users\Lamine\Desktop\woocommerce\code\chromdrivers 137\chrome-win64\chrome.exe"
-ROOT_FOLDER = r"C:\Users\Lamine\Desktop\woocommerce\code\CODE POUR BOB\images non optimiser"
+DEFAULT_CONFIG = {
+    "chrome_driver_path": r"C:\\Users\\Lamine\\Desktop\\woocommerce\\code\\chromdrivers 137\\chromedriver-win64\\chromedriver.exe",
+    "chrome_binary_path": r"C:\\Users\\Lamine\\Desktop\\woocommerce\\code\\chromdrivers 137\\chrome-win64\\chrome.exe",
+    "root_folder": r"C:\\Users\\Lamine\\Desktop\\woocommerce\\code\\CODE POUR BOB\\images non optimiser",
+    "links_file_path": r"C:\\Users\\Lamine\\Desktop\\woocommerce\\code\\CODE POUR BOB\\liens.txt",
+}
+
+parser = argparse.ArgumentParser(description="Scrape images from product pages")
+parser.add_argument("--config", help="Path to YAML or JSON configuration file")
+args = parser.parse_args()
+
+config = DEFAULT_CONFIG.copy()
+if args.config:
+    try:
+        config.update(load_config(args.config))
+    except Exception as e:
+        print(f"\u26a0\ufe0f Impossible de charger la configuration: {e}")
+
+chrome_driver_path = config["chrome_driver_path"]
+chrome_binary_path = config["chrome_binary_path"]
+ROOT_FOLDER = config["root_folder"]
 
 os.makedirs(ROOT_FOLDER, exist_ok=True)
 
@@ -43,7 +63,7 @@ def read_links_from_txt(path):
     with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
 
-links_file_path = r"C:\Users\Lamine\Desktop\woocommerce\code\CODE POUR BOB\liens.txt"
+links_file_path = config["links_file_path"]
 product_urls = read_links_from_txt(links_file_path)
 
 # === FONCTIONS UTILES ===
