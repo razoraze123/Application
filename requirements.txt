@@ -9,4 +9,5 @@ tqdm
 flake8
 webdriver-manager
 qtawesome
+qt-material
 websockets
