@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QTextEdit,
 )
+from PySide6.QtGui import QTextCursor
 
 import qtawesome as qta
 
@@ -88,9 +89,10 @@ class EmittingStream(QObject):
     def write(self, text: str) -> None:
         if text:
             self.text_written.emit(str(text))
+            sys.__stdout__.write(str(text))
 
     def flush(self) -> None:  # pragma: no cover - no logic
-        pass
+        sys.__stdout__.flush()
 
 
 class ScrapingWorker(QThread):
@@ -112,6 +114,9 @@ class ScrapingWorker(QThread):
         self.actions = actions
         self.batch_size = batch_size
         self.session_paths = session_paths
+
+        self.emitter = EmittingStream()
+        self.emitter.text_written.connect(self.handle_output)
 
         self.totals: dict[str, int] = {}
         if actions.get("variantes"):
@@ -174,10 +179,8 @@ class ScrapingWorker(QThread):
         self.progress.emit(percent, elapsed, remaining)
 
     def run(self) -> None:
-        emitter = EmittingStream()
-        emitter.text_written.connect(self.handle_output)
         old_stdout = sys.stdout
-        sys.stdout = emitter
+        sys.stdout = self.emitter
         self.start = time.time()
         try:
             id_url_map = charger_liens_avec_id_fichier(self.links_file)
@@ -321,6 +324,18 @@ class MainWindow(QMainWindow):
 
         self.time_label = QLabel("Temps écoulé: 0s | Temps restant estimé: ?")
         layout.addWidget(self.time_label)
+
+        self.toggle_log_btn = QToolButton()
+        self.toggle_log_btn.setText("Afficher le journal")
+        self.toggle_log_btn.setCheckable(True)
+        self.toggle_log_btn.setArrowType(Qt.RightArrow)
+        self.toggle_log_btn.clicked.connect(self.toggle_log)
+        layout.addWidget(self.toggle_log_btn)
+
+        self.log_area = QTextEdit()
+        self.log_area.setReadOnly(True)
+        self.log_area.setVisible(False)
+        layout.addWidget(self.log_area)
 
         return widget
 
@@ -489,6 +504,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.status_var.setText("")
         self.status_fiche.setText("")
         self.status_export.setText("")
+        self.log_area.clear()
         self.worker = ScrapingWorker(
             self.links_path,
             self.selected_ids,
@@ -499,6 +515,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.worker.progress.connect(self.update_progress)
         self.worker.action_progress.connect(self.update_action_status)
         self.worker.finished.connect(self.on_finished)
+        self.worker.emitter.text_written.connect(self.append_log)
         for action, total in self.worker.totals.items():
             self.update_action_status(action, 0, total)
         self.worker.start()
@@ -524,6 +541,15 @@ La barre de progression et le minuteur indiquent l'avancement."""
             self.status_fiche.setText(text)
         elif action == "export":
             self.status_export.setText(text)
+
+    def toggle_log(self, checked: bool) -> None:
+        self.log_area.setVisible(checked)
+        self.toggle_log_btn.setArrowType(Qt.DownArrow if checked else Qt.RightArrow)
+
+    def append_log(self, text: str) -> None:
+        self.log_area.moveCursor(QTextCursor.End)
+        self.log_area.insertPlainText(text)
+        self.log_area.moveCursor(QTextCursor.End)
 
     def on_finished(self) -> None:
         self.launch_btn.setEnabled(True)
