@@ -8,7 +8,7 @@ import re
 import sys
 import time
 
-from PySide6.QtCore import Signal, QObject, QThread
+from PySide6.QtCore import Signal, QObject, QThread, Qt, QSettings
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -203,7 +203,13 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Scraping Produit")
         self.resize(850, 600)
-        self.setStyleSheet(DARK_STYLE)
+
+        self.settings = QSettings("scraping_app", "ui")
+        style_dir = Path(__file__).resolve().parents[1] / "ui"
+        default_theme = style_dir / "style.qss"
+        theme_path = self.settings.value("theme", str(default_theme))
+        self._apply_stylesheet(theme_path)
+        self.theme_path = theme_path
 
         self.links_path = ""
         self.id_url_map: dict[str, str] = {}
@@ -325,7 +331,8 @@ class MainWindow(QMainWindow):
 
         self.cb_headless = QCheckBox("Scraping silencieux (headless)")
         self.cb_dark = QCheckBox("Mode sombre")
-        self.cb_dark.setChecked(True)
+        self.cb_dark.setChecked(Path(self.theme_path).name == "style.qss")
+        self.cb_dark.stateChanged.connect(self.on_theme_changed)
         layout.addWidget(self.cb_headless)
         layout.addWidget(self.cb_dark)
 
@@ -459,6 +466,22 @@ La barre de progression et le minuteur indiquent l'avancement."""
     def on_finished(self) -> None:
         self.launch_btn.setEnabled(True)
         QMessageBox.information(self, "Terminé", "Opérations terminées")
+
+    def _apply_stylesheet(self, path: str) -> None:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                self.setStyleSheet(f.read())
+        except OSError:
+            self.setStyleSheet(DARK_STYLE)
+
+    def on_theme_changed(self) -> None:
+        style_dir = Path(__file__).resolve().parents[1] / "ui"
+        if self.cb_dark.isChecked():
+            theme = style_dir / "style.qss"
+        else:
+            theme = style_dir / "light.qss"
+        self._apply_stylesheet(str(theme))
+        self.settings.setValue("theme", str(theme))
 
 
 class ProgressBar(QProgressBar):

@@ -8,6 +8,7 @@ from PySide6.QtCore import (
     QObject,
     QThread,
     Qt,
+    QSettings,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -210,12 +211,13 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Scraping Produit")
         self.resize(850, 600)
-        style_path = os.path.join(os.path.dirname(__file__), "ui", "style.qss")
-        try:
-            with open(style_path, "r", encoding="utf-8") as f:
-                self.setStyleSheet(f.read())
-        except OSError:
-            self.setStyleSheet(DARK_STYLE)
+
+        self.settings = QSettings("scraping_app", "ui")
+        style_dir = os.path.join(os.path.dirname(__file__), "ui")
+        default_theme = os.path.join(style_dir, "style.qss")
+        theme_path = self.settings.value("theme", default_theme)
+        self._apply_stylesheet(theme_path)
+        self.theme_path = theme_path
 
         self.links_path = ""
         self.id_url_map: dict[str, str] = {}
@@ -357,7 +359,8 @@ class MainWindow(QMainWindow):
 
         self.cb_headless = QCheckBox("Scraping silencieux (headless)")
         self.cb_dark = QCheckBox("Mode sombre")
-        self.cb_dark.setChecked(True)
+        self.cb_dark.setChecked(os.path.basename(self.theme_path) == "style.qss")
+        self.cb_dark.stateChanged.connect(self.on_theme_changed)
         layout.addWidget(self.cb_headless)
         layout.addWidget(self.cb_dark)
 
@@ -527,6 +530,22 @@ La barre de progression et le minuteur indiquent l'avancement."""
     def on_finished(self) -> None:
         self.launch_btn.setEnabled(True)
         QMessageBox.information(self, "Terminé", "Opérations terminées")
+
+    def _apply_stylesheet(self, path: str) -> None:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                self.setStyleSheet(f.read())
+        except OSError:
+            self.setStyleSheet(DARK_STYLE)
+
+    def on_theme_changed(self) -> None:
+        style_dir = os.path.join(os.path.dirname(__file__), "ui")
+        if self.cb_dark.isChecked():
+            theme = os.path.join(style_dir, "style.qss")
+        else:
+            theme = os.path.join(style_dir, "light.qss")
+        self._apply_stylesheet(theme)
+        self.settings.setValue("theme", theme)
 
 
 
