@@ -75,6 +75,20 @@ apply_stylesheet(app, theme='dark_purple.xml')
 Pour changer de thème, remplacez `dark_purple.xml` par l’un des nombreux thèmes fournis
 dans qt-material (par exemple : `dark_amber.xml`, `dark_blue.xml`, `light_pink.xml`, etc.).
 
+## Boutons et icônes
+
+Les boutons de l'interface utilisent eux aussi le style qt-material pour rester cohérents avec le thème choisi.
+On peut facilement ajouter une icône QtAwesome lors de la création :
+
+```python
+import qtawesome as qta
+from PySide6.QtWidgets import QPushButton
+
+btn = QPushButton(qta.icon('fa5s.play'), "Lancer")
+```
+
+De même, tous les champs de saisie (QLineEdit, QSpinBox, QSlider…) partagent un style Material défini dans les fichiers QSS du projet.
+
 ## Interface et navigation
 
 La fenêtre principale comporte maintenant une barre latérale verticale qui regroupe les trois onglets :
