@@ -23,7 +23,13 @@ DEFAULT_CONFIG = {
 
 parser = argparse.ArgumentParser(description="Scrape images from product pages")
 parser.add_argument("--config", help="Path to YAML or JSON configuration file")
+parser.add_argument(
+    "--selector",
+    default=".product-gallery__media img",
+    help="CSS selector used to locate product images",
+)
 args = parser.parse_args()
+selector = args.selector
 
 config = DEFAULT_CONFIG.copy()
 if args.config:
@@ -124,7 +130,7 @@ for index, url in enumerate(product_urls):
         folder = os.path.join(ROOT_FOLDER, product_folder_name)
         os.makedirs(folder, exist_ok=True)
 
-        images = driver.find_elements(By.CSS_SELECTOR, ".product-gallery__media img")
+        images = driver.find_elements(By.CSS_SELECTOR, selector)
         print(f"🖼️ {len(images)} image(s) trouvée(s)")
 
         for i, img in enumerate(images):
