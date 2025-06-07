@@ -15,3 +15,19 @@ Corrections principales :
   dans la documentation.
 
 Tous les scripts conservent leur logique initiale.
+
+Refactoring et nouvelles fonctionnalités :
+
+- **scraper_images.py** repensé autour de la classe `ImageScraper` avec une
+  interface en ligne de commande. Les options peuvent être chargées depuis un
+  fichier YAML ou JSON via `--config`.
+- Nouveau module `config_loader.py` pour centraliser le chargement de la
+  configuration.
+- Mise en place d'une journalisation basique via `logging` dans
+  `main.py` et `core/scraper.py`.
+
+Ruptures et dépendances :
+
+- Le paquet `pyyaml` est requis pour l'utilisation des fichiers YAML.
+- Le comportement du script d'images change : l'ancien appel sans
+  configuration explicite n'est plus supporté tel quel.
