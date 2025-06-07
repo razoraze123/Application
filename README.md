@@ -52,7 +52,7 @@ Lancez l’application
 css
 Copier
 Modifier
-python main.py
+python application_definitif.py
 L’interface graphique s’ouvre : suivez les indications pour scraper les sites souhaités.
 
 Structure du projet (exemple)
@@ -61,7 +61,7 @@ Copier
 Modifier
 scraper/
 │
-├── main.py
+├── application_definitif.py
 ├── requirements.txt
 ├── README.md
 ├── core/
