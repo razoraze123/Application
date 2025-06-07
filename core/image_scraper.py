@@ -33,7 +33,9 @@ class ImageScraper:
     # Utility helpers
     @staticmethod
     def slugify(text: str) -> str:
-        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+        text = unicodedata.normalize("NFKD", text).encode(
+            "ascii", "ignore"
+        ).decode("ascii")
         text = re.sub(r"[^\w\s-]", "", text.lower())
         return re.sub(r"[-\s]+", "-", text).strip("-")
 
@@ -50,7 +52,9 @@ class ImageScraper:
         if self.chrome_binary_path:
             options.binary_location = self.chrome_binary_path
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option(
+            "excludeSwitches", ["enable-automation"]
+        )
         options.add_experimental_option("useAutomationExtension", False)
 
         if self.chrome_driver_path:
@@ -61,7 +65,12 @@ class ImageScraper:
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
-            {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"},
+            {
+                "source": (
+                    "Object.defineProperty(navigator, 'webdriver', "
+                    "{get: () => undefined})"
+                )
+            },
         )
         return self.driver
 
@@ -84,7 +93,9 @@ class ImageScraper:
             if self.driver is None:
                 self.setup_driver()
             os.makedirs(self.root_folder, exist_ok=True)
-            total = len(list(urls)) if not isinstance(urls, list) else len(urls)
+            total = (
+                len(list(urls)) if not isinstance(urls, list) else len(urls)
+            )
             if not isinstance(urls, list):
                 urls = list(urls)
             for index, url in enumerate(urls, start=1):
@@ -95,7 +106,10 @@ class ImageScraper:
                     time.sleep(random.uniform(2.5, 4.5))
 
                     product_title = self.get_product_title()
-                    folder = os.path.join(self.root_folder, self.slugify(product_title))
+                    folder = os.path.join(
+                        self.root_folder,
+                        self.slugify(product_title),
+                    )
                     os.makedirs(folder, exist_ok=True)
 
                     images = list(self.get_image_elements())
@@ -112,7 +126,11 @@ class ImageScraper:
                             print(f"   ✅ Image {i+1} → {filename}")
                         except Exception as err:
                             exit_code = 1
-                            print(f"   ❌ Échec de téléchargement pour image {i+1}: {err}")
+                            msg = (
+                                "   ❌ Échec de téléchargement pour image "
+                                f"{i+1}: {err}"
+                            )
+                            print(msg)
                 except Exception as e:  # pragma: no cover - debug output
                     exit_code = 1
                     print(f"❌ Erreur sur la page {url} : {e}")
@@ -120,4 +138,3 @@ class ImageScraper:
             if self.driver:
                 self.driver.quit()
         return exit_code
-
