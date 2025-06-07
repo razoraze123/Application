@@ -197,7 +197,7 @@ class BrowserInspector(QMainWindow):
         self.language = "fr"
         self.setWindowTitle("Inspecteur de Sélecteur")
         self.scrapers = scrapers
-        self.current_scraper = next(iter(scrapers.values()))
+        self.current_scraper = next(iter(scrapers.values()), None)
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -401,7 +401,7 @@ class BrowserInspector(QMainWindow):
     def handle_scrape(self) -> None:
         url = self.driver.current_url if self.driver else ""
         selector = self.selector_edit.text().strip()
-        if not url or not selector:
+        if not url or not selector or self.current_scraper is None:
             return
         self.scrape_button.setEnabled(False)
         self.result_edit.clear()
@@ -461,8 +461,15 @@ class BrowserInspector(QMainWindow):
 
 
 def main() -> None:
+    scrapers = load_scrapers()
+    if not scrapers:
+        print(
+            "Aucun scraper disponible, veuillez vérifier la configuration ou ajouter un scraper"
+        )
+        return
+
     app = QApplication(sys.argv)
-    win = BrowserInspector(load_scrapers())
+    win = BrowserInspector(scrapers)
     win.resize(1000, 700)
     win.show()
     sys.exit(app.exec())
