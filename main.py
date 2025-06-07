@@ -1,12 +1,15 @@
+"""Command line interface to launch scraping routines."""
+
 import os
-from core.utils import charger_liens_avec_id, extraire_ids_depuis_input
 import sys
 import logging
+
 from core.scraper import (
     scrap_produits_par_ids,
     scrap_fiches_concurrents,
     export_fiches_concurrents_json,
 )
+from core.utils import charger_liens_avec_id, extraire_ids_depuis_input
 
 
 def demander_base_dir() -> str:

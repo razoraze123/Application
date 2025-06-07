@@ -10,3 +10,9 @@ Corrections appliquées :
   `extras_require` (installation possible avec `pip install .[yaml]`).
 - Raccourcissement de plusieurs lignes longues et ajout d'un test `flake8`
   pour vérifier le style de code.
+- Ajout de docstrings de module pour `main.py`, `core/scraper.py`,
+  `core/utils.py` et `config_loader.py`.
+- Documentation des fonctions publiques dans `core/scraper.py` et
+  `core/utils.py`.
+- Factorisation de `scrap_produits_par_ids` et `scrap_fiches_concurrents` en
+  petits helpers privés (extraction du prix, des variantes, parsing HTML).

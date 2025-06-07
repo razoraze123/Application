@@ -1,3 +1,5 @@
+"""Selenium based scraping helpers."""
+
 import os
 import re
 import json
@@ -41,11 +43,84 @@ def _get_driver(headless: bool = False) -> webdriver.Chrome:
     return driver
 
 
+def _parse_price(driver: webdriver.Chrome) -> str:
+    """Return the product price displayed on the current page."""
+    for selector in [
+        "sale-price.text-lg",
+        ".price",
+        ".product-price",
+        ".woocommerce-Price-amount",
+    ]:
+        try:
+            elem = driver.find_element(By.CSS_SELECTOR, selector)
+            if elem and elem.text.strip():
+                match = re.search(
+                    r"([0-9]+(?:[\\.,][0-9]{2})?)",
+                    elem.text.strip(),
+                )
+                if match:
+                    return match.group(1).replace(",", ".")
+        except Exception:
+            continue
+    return ""
+
+
+def _get_variant_names(driver: webdriver.Chrome) -> list:
+    """Return the visible variant names on the current page."""
+    labels = driver.find_elements(By.CSS_SELECTOR, "label.color-swatch")
+    names = []
+    for label in labels:
+        if not label.is_displayed():
+            continue
+        try:
+            elem = label.find_element(By.CSS_SELECTOR, "span.sr-only")
+            names.append(elem.text.strip())
+        except Exception:
+            continue
+    return names
+
+
+def _extract_title(soup: BeautifulSoup) -> str:
+    """Return the product title from *soup* or raise."""
+    title_tag = (
+        soup.find("h1", class_="product-single__title")
+        or soup.find("h1", class_="product-info__title")
+        or soup.find("h1")
+    )
+    if not title_tag:
+        raise Exception("❌ Titre produit introuvable")
+    return title_tag.get_text(strip=True)
+
+
+def _find_description_div(soup: BeautifulSoup) -> BeautifulSoup:
+    """Return the description div from *soup* or raise."""
+    description_div = soup.find("div", {"id": "product_description"})
+    if not description_div:
+        container = soup.find("div", class_="accordion__content")
+        if container:
+            description_div = container.find("div", class_="prose")
+    if not description_div:
+        description_div = soup.find("div", class_="prose")
+    if not description_div:
+        raise Exception("❌ Description introuvable")
+    return description_div
+
+
+def _convert_links(tag):
+    """Replace HTML links within *tag* by Markdown text."""
+    for a in tag.find_all("a", href=True):
+        text = a.get_text(strip=True)
+        href = a["href"]
+        markdown = f"[{text}]({href})"
+        a.replace_with(markdown)
+
+
 def scrap_produits_par_ids(
     id_url_map: dict,
     ids_selectionnes: list,
     base_dir: str,
 ) -> int:
+    """Scrape product variants and generate a WooCommerce spreadsheet."""
     fichier_excel = os.path.join(base_dir, "woocommerce_mix.xlsx")
     driver = None
     woocommerce_rows = []
@@ -76,46 +151,9 @@ def scrap_produits_par_ids(
                     .strip("-")[:15]
                     .upper()
                 )
-                product_price = ""
+                product_price = _parse_price(driver)
 
-                for selector in [
-                    "sale-price.text-lg",
-                    ".price",
-                    ".product-price",
-                    ".woocommerce-Price-amount",
-                ]:
-                    try:
-                        elem = driver.find_element(By.CSS_SELECTOR, selector)
-                        if elem and elem.text.strip():
-                            match = re.search(
-                                r"([0-9]+(?:[\\.,][0-9]{2})?)",
-                                elem.text.strip(),
-                            )
-                            if match:
-                                product_price = match.group(1).replace(
-                                    ",",
-                                    ".",
-                                )
-                            break
-                    except Exception:
-                        continue
-
-                variant_labels = driver.find_elements(
-                    By.CSS_SELECTOR, "label.color-swatch"
-                )
-                visible_labels = [
-                    label for label in variant_labels if label.is_displayed()
-                ]
-                variant_names = []
-
-                for label in visible_labels:
-                    try:
-                        name = label.find_element(
-                            By.CSS_SELECTOR, "span.sr-only"
-                        ).text.strip()
-                        variant_names.append(name)
-                    except Exception:
-                        continue
+                variant_names = _get_variant_names(driver)
 
                 nom_dossier = clean_name(product_name).replace(" ", "-")
 
@@ -177,6 +215,7 @@ def scrap_fiches_concurrents(
     ids_selectionnes: list,
     base_dir: str,
 ) -> int:
+    """Extract competitor pages as HTML snippets."""
     save_directory = os.path.join(base_dir, "fiches_concurrents")
     recap_excel_path = os.path.join(base_dir, "recap_concurrents.xlsx")
     driver = None
@@ -204,38 +243,12 @@ def scrap_fiches_concurrents(
                 html = driver.page_source
                 soup = BeautifulSoup(html, "html.parser")
 
-                title_tag = (
-                    soup.find("h1", class_="product-single__title") or
-                    soup.find("h1", class_="product-info__title") or
-                    soup.find("h1")
-                )
-                if not title_tag:
-                    raise Exception("❌ Titre produit introuvable")
-                title = title_tag.get_text(strip=True)
+                title = _extract_title(soup)
                 filename = clean_filename(title) + ".txt"
                 txt_path = os.path.join(save_directory, filename)
 
-                description_div = None
-                description_div = soup.find(
-                    "div", {"id": "product_description"}
-                )
-                if not description_div:
-                    container = soup.find("div", class_="accordion__content")
-                    if container:
-                        description_div = container.find("div", class_="prose")
-                if not description_div:
-                    description_div = soup.find("div", class_="prose")
-                if not description_div:
-                    raise Exception("❌ Description introuvable")
-
-                def convert_links(tag):
-                    for a in tag.find_all("a", href=True):
-                        text = a.get_text(strip=True)
-                        href = a['href']
-                        markdown = f"[{text}]({href})"
-                        a.replace_with(markdown)
-
-                convert_links(description_div)
+                description_div = _find_description_div(soup)
+                _convert_links(description_div)
                 raw_html = str(description_div)
 
                 txt_content = f"<h1>{title}</h1>\n\n{raw_html}"
@@ -267,6 +280,7 @@ def export_fiches_concurrents_json(
     base_dir: str,
     taille_batch: int = 5,
 ) -> int:
+    """Export scraped pages to JSON batches of ``taille_batch`` files."""
     dossier_source = os.path.join(base_dir, "fiches_concurrents")
     dossier_sortie = os.path.join(dossier_source, "batches_json")
     os.makedirs(dossier_sortie, exist_ok=True)

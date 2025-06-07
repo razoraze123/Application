@@ -1,24 +1,28 @@
+"""Utility helpers for cleaning text and loading product mappings."""
+
 import os
 import re
 import unicodedata
 
 
 def clean_name(name: str) -> str:
-    nfkd = unicodedata.normalize('NFKD', name)
-    only_ascii = nfkd.encode('ASCII', 'ignore').decode('ASCII')
-    return only_ascii.lower().replace('-', ' ').strip()
+    """Return a normalized string suitable for folder names."""
+    nfkd = unicodedata.normalize("NFKD", name)
+    only_ascii = nfkd.encode("ASCII", "ignore").decode("ASCII")
+    return only_ascii.lower().replace("-", " ").strip()
 
 
 def clean_filename(name: str) -> str:
-    nfkd = unicodedata.normalize('NFKD', name)
-    only_ascii = nfkd.encode('ASCII', 'ignore').decode('ASCII')
+    """Sanitize a product title for use as a file name."""
+    nfkd = unicodedata.normalize("NFKD", name)
+    only_ascii = nfkd.encode("ASCII", "ignore").decode("ASCII")
     safe = re.sub(r"[^a-zA-Z0-9\- ]", "", only_ascii)
     safe = safe.replace(" ", "-").lower()
     return safe
 
 
 def charger_liens_avec_id(base_dir: str) -> dict:
-    """Charge le mapping ID -> URL depuis le fichier liens_avec_id.txt."""
+    """Load ID→URL mapping from ``liens_avec_id.txt`` in *base_dir*."""
     id_url_map = {}
     liens_id_txt = os.path.join(base_dir, "liens_avec_id.txt")
     if not os.path.exists(liens_id_txt):
@@ -34,7 +38,7 @@ def charger_liens_avec_id(base_dir: str) -> dict:
 
 
 def charger_liens_avec_id_fichier(fichier: str) -> dict:
-    """Charge le mapping ID -> URL depuis un fichier texte fourni."""
+    """Load ID→URL mapping from an explicit text file path."""
     id_url_map = {}
     if not os.path.exists(fichier):
         print(f"Fichier introuvable : {fichier}")
@@ -49,6 +53,7 @@ def charger_liens_avec_id_fichier(fichier: str) -> dict:
 
 
 def extraire_ids_depuis_input(input_str: str) -> list:
+    """Return a list of IDs from a range expression like ``A1-A3``."""
     try:
         start_id, end_id = input_str.upper().split("-")
         start_num = int(start_id[1:])

@@ -1,3 +1,5 @@
+"""Utility to load configuration files in JSON or YAML format."""
+
 import os
 import json
 
