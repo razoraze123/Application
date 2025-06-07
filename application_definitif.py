@@ -27,6 +27,10 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QTextEdit,
+    QTableWidget,
+    QTableWidgetItem,
+    QAbstractItemView,
+    QHeaderView,
 )
 from PySide6.QtGui import QTextCursor
 
@@ -263,9 +267,15 @@ class MainWindow(QMainWindow):
         self.max_id_edit.setPlaceholderText("ID max")
         self.min_id_edit.textChanged.connect(self.update_range)
         self.max_id_edit.textChanged.connect(self.update_range)
-        select_all = QPushButton(qta.icon("fa5s.check-double"), "Tout sélectionner")
+        select_all = QPushButton(
+            qta.icon("fa5s.check-double"),
+            "Tout sélectionner",
+        )
         select_all.clicked.connect(self.select_all_ids)
-        clear_sel = QPushButton(qta.icon("fa5s.eraser"), "Effacer sélection")
+        clear_sel = QPushButton(
+            qta.icon("fa5s.eraser"),
+            "Effacer sélection",
+        )
         clear_sel.clicked.connect(self.clear_selection)
         range_layout.addWidget(self.min_id_edit)
         range_layout.addWidget(self.max_id_edit)
@@ -332,6 +342,17 @@ class MainWindow(QMainWindow):
         self.time_label = QLabel("Temps écoulé: 0s | Temps restant estimé: ?")
         layout.addWidget(self.time_label)
 
+        self.results_table = QTableWidget(0, 2)
+        self.results_table.setObjectName("results_table")
+        self.results_table.setHorizontalHeaderLabels(["Action", "Progression"])
+        self.results_table.verticalHeader().setVisible(False)
+        self.results_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Stretch
+        )
+        self.results_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.results_table.setSelectionMode(QAbstractItemView.NoSelection)
+        layout.addWidget(self.results_table)
+
         self.toggle_log_btn = QToolButton()
         self.toggle_log_btn.setIcon(qta.icon("fa5s.book"))
         self.toggle_log_btn.setText("Afficher le journal")
@@ -341,7 +362,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.toggle_log_btn)
 
         self.log_area = QTextEdit()
+        self.log_area.setObjectName("logArea")
         self.log_area.setReadOnly(True)
+        self.log_area.setLineWrapMode(QTextEdit.NoWrap)
         self.log_area.setVisible(False)
         layout.addWidget(self.log_area)
 
@@ -530,6 +553,8 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.status_fiche.setText("")
         self.status_export.setText("")
         self.log_area.clear()
+        self.results_table.clearContents()
+        self.results_table.setRowCount(0)
         self.worker = ScrapingWorker(
             self.links_path,
             self.selected_ids,
@@ -541,7 +566,20 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.worker.action_progress.connect(self.update_action_status)
         self.worker.finished.connect(self.on_finished)
         self.worker.emitter.text_written.connect(self.append_log)
-        for action, total in self.worker.totals.items():
+        self.action_rows = {}
+        self.results_table.setRowCount(len(self.worker.totals))
+        for row, (action, total) in enumerate(self.worker.totals.items()):
+            self.action_rows[action] = row
+            self.results_table.setItem(
+                row,
+                0,
+                QTableWidgetItem(action.capitalize()),
+            )
+            self.results_table.setItem(
+                row,
+                1,
+                QTableWidgetItem(f"0/{total}"),
+            )
             self.update_action_status(action, 0, total)
         self.worker.start()
 
@@ -566,6 +604,11 @@ La barre de progression et le minuteur indiquent l'avancement."""
             self.status_fiche.setText(text)
         elif action == "export":
             self.status_export.setText(text)
+        if hasattr(self, "action_rows") and action in self.action_rows:
+            row = self.action_rows[action]
+            item = self.results_table.item(row, 1)
+            if item:
+                item.setText(f"{done}/{total}")
 
     def toggle_log(self, checked: bool) -> None:
         self.log_area.setVisible(checked)
@@ -574,6 +617,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.log_area.moveCursor(QTextCursor.End)
         self.log_area.insertPlainText(text)
         self.log_area.moveCursor(QTextCursor.End)
+        self.log_area.ensureCursorVisible()
 
     def on_finished(self) -> None:
         self.launch_btn.setEnabled(True)

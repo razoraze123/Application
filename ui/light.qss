@@ -98,3 +98,26 @@ QTabBar::tab {
     border-top-right-radius: 4px;
 }
 QTabBar::tab:selected { background: #0078d7; }
+
+/* Console log styling */
+QTextEdit#logArea {
+    background-color: #fafafa;
+    color: #222222;
+    font-family: "Courier New", monospace;
+    border: 1px solid #bbbbbb;
+}
+
+/* Results table styling */
+QTableWidget#results_table {
+    background-color: #ffffff;
+    color: #222222;
+    gridline-color: #cccccc;
+    border: 1px solid #bbbbbb;
+}
+
+QTableWidget#results_table QHeaderView::section {
+    background-color: #e0e0e0;
+    color: #222222;
+    border: 1px solid #bbbbbb;
+    padding: 4px;
+}
