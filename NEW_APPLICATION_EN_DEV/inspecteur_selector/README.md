@@ -13,17 +13,17 @@ Ce sous-dossier contient un prototype de navigateur minimaliste permettant de r�
 
 ## Installation
 
-Assurez‑vous de disposer de Python 3.8 ou plus récent, puis installez les
-dépendances :
+Assurez‑vous de disposer de Python 3.8 ou plus récent. Toutes les dépendances
+sont listées à la racine du dépôt :
 
 ```bash
-pip install -r requirements.txt
+pip install -r ../../requirements.txt
 ```
 
-Cela installe notamment **PySide6**, **selenium**, **webdriver-manager**,
-**websockets** et **QtWebEngine**. Veillez aussi à avoir Google Chrome ou
-Chromium déjà installé ; `webdriver-manager` téléchargera automatiquement le
-ChromeDriver adapté.
+Cette commande installe notamment **PySide6**, **selenium**,
+**webdriver-manager**, **websockets** et **QtWebEngine**. Veillez aussi à avoir
+Google Chrome ou Chromium déjà installé ; `webdriver-manager` téléchargera
+automatiquement le ChromeDriver adapté.
 
 ## Utilisation
 

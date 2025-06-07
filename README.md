@@ -43,6 +43,9 @@ cd Application
 pip install -r requirements.txt
 ```
 
+Ce fichier de dépendances est la référence unique pour l'ensemble du dépôt,
+y compris les prototypes présents dans `NEW_APPLICATION_EN_DEV/`.
+
 ## Dépendances système
 Avant d'utiliser l'application sous Linux, installez les bibliothèques système nécessaires pour PySide6 :
 
