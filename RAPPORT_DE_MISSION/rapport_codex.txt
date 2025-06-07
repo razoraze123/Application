@@ -1,0 +1,65 @@
+AUDIT DU DEPOT - Synthèse des améliorations proposées
+=====================================================
+
+1. **Gestion des dépendances**
+   - `requirements.txt` contient `scrapy` qui n'est utilisé nulle part.
+   - `pyyaml` n'est nécessaire que pour `config_loader.py`.
+   - Les tests échouent si les dépendances ne sont pas installées.
+
+2. **Qualité de code / PEP8**
+   - Plusieurs fichiers dépassent la limite de 79 caractères (voir `flake8`).
+   - Ligne vide en fin de fichier (`core/image_scraper.py`).
+   - `tests/__init__.py` contient une ligne trop longue.
+
+3. **Documentation et lisibilité**
+   - Absence de docstrings dans de nombreux modules et fonctions (voir `pylint`).
+   - Fonctions longues et complexes dans `core/scraper.py`.
+
+4. **Robustesse et sécurité**
+   - Utilisation d'`assert` pour vérifier l'état du driver dans `ImageScraper`.
+   - Captures d'exception trop larges (`except Exception`).
+   - `urllib.request.urlretrieve` sans validation d'URL (alerte Bandit B310).
+
+5. **Tests**
+   - Couverture actuelle très faible : seulement trois tests unitaires simples.
+   - Pas de tests pour les chemins d'erreur ou les fonctions de scraping.
+
+6. **Logs et retours utilisateur**
+   - Nombreux `print()` répartis dans les modules : préférer `logging`.
+
+7. **Structure du projet**
+   - Le dossier `css-selector-generator` (bibliothèque JS) gonfle le dépôt ; à
+     évaluer s'il doit être rendu optionnel ou déplacé dans un sous-module.
+
+STRATÉGIE DE CORRECTION
+-----------------------
+
+- **Étape 1 : nettoyage des dépendances**
+  1. Supprimer `scrapy` de `requirements.txt` et rendre `pyyaml` optionnel
+     (`extras_require`).
+  2. Mettre à jour la documentation et `PATCH_REPORT.txt` en conséquence.
+
+- **Étape 2 : conformité PEP8**
+  1. Appliquer `black` ou corriger manuellement les lignes trop longues.
+  2. Ajouter `flake8` dans les tests CI pour prévenir les régressions.
+
+- **Étape 3 : refactorisation et docstrings**
+  1. Ajouter des docstrings aux modules et fonctions principales.
+  2. Découper les fonctions trop volumineuses du module `core/scraper.py`.
+
+- **Étape 4 : robustesse**
+  1. Remplacer les `assert` par des exceptions explicites.
+  2. Spécifier les types d’erreurs capturés plutôt que `Exception`.
+  3. Vérifier et sécuriser le téléchargement des images.
+
+- **Étape 5 : journalisation**
+  1. Substituer progressivement les `print()` par `logging` tout en conservant
+     la compatibilité avec l’interface (émission dans `EmittingStream`).
+
+- **Étape 6 : tests**
+  1. Élargir la suite de tests : cas limites de `extraire_ids_depuis_input`,
+     comportement de `ImageScraper` (avec mocks) et du scraping principal.
+
+Cette démarche permettra d’améliorer la maintenabilité sans perturber les
+modules existants : chaque refactor sera couvert par des tests pour valider le
+comportement actuel avant d’introduire des modifications plus profondes.
