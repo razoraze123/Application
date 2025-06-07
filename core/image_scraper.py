@@ -77,42 +77,47 @@ class ImageScraper:
         return self.driver.find_elements(By.CSS_SELECTOR, self.selector)
 
     # ------------------------------------------------------------------
-    def scrape_images(self, urls: Iterable[str]) -> None:
+    def scrape_images(self, urls: Iterable[str]) -> int:
         """Main scraping routine."""
-        if self.driver is None:
-            self.setup_driver()
-        os.makedirs(self.root_folder, exist_ok=True)
-        total = len(list(urls)) if not isinstance(urls, list) else len(urls)
-        if not isinstance(urls, list):
-            urls = list(urls)
-        for index, url in enumerate(urls, start=1):
-            print(f"\n🔍 Produit {index}/{total} : {url}")
-            try:
-                assert self.driver is not None
-                self.driver.get(url)
-                time.sleep(random.uniform(2.5, 4.5))
+        exit_code = 0
+        try:
+            if self.driver is None:
+                self.setup_driver()
+            os.makedirs(self.root_folder, exist_ok=True)
+            total = len(list(urls)) if not isinstance(urls, list) else len(urls)
+            if not isinstance(urls, list):
+                urls = list(urls)
+            for index, url in enumerate(urls, start=1):
+                print(f"\n🔍 Produit {index}/{total} : {url}")
+                try:
+                    assert self.driver is not None
+                    self.driver.get(url)
+                    time.sleep(random.uniform(2.5, 4.5))
 
-                product_title = self.get_product_title()
-                folder = os.path.join(self.root_folder, self.slugify(product_title))
-                os.makedirs(folder, exist_ok=True)
+                    product_title = self.get_product_title()
+                    folder = os.path.join(self.root_folder, self.slugify(product_title))
+                    os.makedirs(folder, exist_ok=True)
 
-                images = list(self.get_image_elements())
-                print(f"🖼️ {len(images)} image(s) trouvée(s)")
+                    images = list(self.get_image_elements())
+                    print(f"🖼️ {len(images)} image(s) trouvée(s)")
 
-                for i, img in enumerate(images):
-                    src = img.get_attribute("src")
-                    if not src:
-                        continue
-                    filename = f"img_{i}.webp"
-                    filepath = os.path.join(folder, filename)
-                    try:
-                        urllib.request.urlretrieve(src, filepath)
-                        print(f"   ✅ Image {i+1} → {filename}")
-                    except Exception as err:
-                        print(f"   ❌ Échec de téléchargement pour image {i+1}: {err}")
-            except Exception as e:  # pragma: no cover - debug output
-                print(f"❌ Erreur sur la page {url} : {e}")
-
-        if self.driver:
-            self.driver.quit()
+                    for i, img in enumerate(images):
+                        src = img.get_attribute("src")
+                        if not src:
+                            continue
+                        filename = f"img_{i}.webp"
+                        filepath = os.path.join(folder, filename)
+                        try:
+                            urllib.request.urlretrieve(src, filepath)
+                            print(f"   ✅ Image {i+1} → {filename}")
+                        except Exception as err:
+                            exit_code = 1
+                            print(f"   ❌ Échec de téléchargement pour image {i+1}: {err}")
+                except Exception as e:  # pragma: no cover - debug output
+                    exit_code = 1
+                    print(f"❌ Erreur sur la page {url} : {e}")
+        finally:
+            if self.driver:
+                self.driver.quit()
+        return exit_code
 

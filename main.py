@@ -1,5 +1,7 @@
 import os
 from core.utils import charger_liens_avec_id, extraire_ids_depuis_input
+import sys
+import logging
 from core.scraper import (
     scrap_produits_par_ids,
     scrap_fiches_concurrents,
@@ -18,6 +20,7 @@ def demander_base_dir() -> str:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     print("Bienvenue dans l'application de scraping!")
     base_dir = demander_base_dir()
 
@@ -34,14 +37,18 @@ if __name__ == "__main__":
     if input(
         "\u25b6\ufe0f Lancer le scraping des variantes ? (oui/non): "
     ).strip().lower() == "oui":
-        scrap_produits_par_ids(id_url_map, ids_selectionnes, base_dir)
+        code = scrap_produits_par_ids(id_url_map, ids_selectionnes, base_dir)
+        if code:
+            sys.exit(code)
 
     message_fiche = (
         "\u25b6\ufe0f Lancer le scraping des fiches produits concurrents ?"
         " (oui/non): "
     )
     if input(message_fiche).strip().lower() == "oui":
-        scrap_fiches_concurrents(id_url_map, ids_selectionnes, base_dir)
+        code = scrap_fiches_concurrents(id_url_map, ids_selectionnes, base_dir)
+        if code:
+            sys.exit(code)
 
     msg_export = (
         "\u25b6\ufe0f Voulez-vous exporter les fiches produits concurrents en"
@@ -59,4 +66,6 @@ if __name__ == "__main__":
                 " d\u00e9faut."
             )
             taille_batch = 5
-        export_fiches_concurrents_json(base_dir, taille_batch)
+        code = export_fiches_concurrents_json(base_dir, taille_batch)
+        if code:
+            sys.exit(code)
