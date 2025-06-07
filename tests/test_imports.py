@@ -12,6 +12,9 @@ class TestImports(unittest.TestCase):
         except ImportError:
             self.skipTest('PySide6 non disponible')
 
+    def test_image_scraper_imports(self):
+        importlib.import_module('core.image_scraper')
+
 
 if __name__ == '__main__':
     unittest.main()
