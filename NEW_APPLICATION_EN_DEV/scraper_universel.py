@@ -73,8 +73,13 @@ def scrap_fiche_generique(url: str,
     """Return the scraped fields defined in *mapping* from *url*."""
     mapping = _load_mapping(mapping, mapping_file)
 
-    resp = requests.get(url, timeout=timeout)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as err:
+        logger.error("Failed to fetch %s: %s", url, err)
+        return {}
+
     page = resp.text
     soup = BeautifulSoup(page, "html.parser")
     tree = html.fromstring(page) if html else None
