@@ -81,7 +81,8 @@ def scrap_fiche_generique(url: str,
         return {}
 
     page = resp.text
-    soup = BeautifulSoup(page, "html.parser")
+    bs_parser = "lxml" if html else "html.parser"
+    soup = BeautifulSoup(page, bs_parser)
     tree = html.fromstring(page) if html else None
 
     data: Dict[str, Any] = {}
