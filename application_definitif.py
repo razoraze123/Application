@@ -10,6 +10,7 @@ from PySide6.QtCore import (
     QThread,
     Qt,
     QSettings,
+    QUrl,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,8 +33,11 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QAbstractItemView,
     QHeaderView,
+    QGroupBox,
 )
-from PySide6.QtGui import QTextCursor
+from PySide6.QtGui import QTextCursor, QColor, QDesktopServices
+import importlib.util
+import subprocess
 import qtawesome as qta
 
 from core.scraper import (
@@ -246,6 +250,23 @@ class ScrapingWorker(QThread):
             elapsed = time.time() - self.start
             self.progress.emit(100, elapsed, 0.0)
             self.finished.emit()
+
+
+class PipInstaller(QThread):
+    """Install Python packages in a separate thread."""
+
+    finished = Signal(str, bool, str)
+
+    def __init__(self, args: list[str]) -> None:
+        super().__init__()
+        self.args = args
+
+    def run(self) -> None:
+        cmd = [sys.executable, "-m", "pip", "install"] + self.args
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        pkg = " ".join(self.args)
+        out = proc.stdout + proc.stderr
+        self.finished.emit(pkg, proc.returncode == 0, out)
 
 
 class MainWindow(QMainWindow):
@@ -493,6 +514,42 @@ class MainWindow(QMainWindow):
         save_btn = QPushButton(qta.icon("fa5s.save"), "Sauvegarder")
         save_btn.clicked.connect(self.save_settings)
         layout.addWidget(save_btn)
+
+        deps_group = QGroupBox("Dépendances Python")
+        deps_layout = QVBoxLayout(deps_group)
+        self.deps_table = QTableWidget(0, 3)
+        self.deps_table.setHorizontalHeaderLabels(
+            ["Nom du module", "Statut", "Action"]
+        )
+        self.deps_table.verticalHeader().setVisible(False)
+        self.deps_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Stretch
+        )
+        self.deps_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.deps_table.setSelectionMode(QAbstractItemView.NoSelection)
+        deps_layout.addWidget(self.deps_table)
+
+        btn_line = QHBoxLayout()
+        self.install_all_btn = QPushButton("Installer les dépendances")
+        self.install_all_btn.clicked.connect(self.install_all_deps)
+        self.refresh_deps_btn = QPushButton("Actualiser la liste")
+        self.refresh_deps_btn.clicked.connect(self.refresh_deps_status)
+        self.doc_btn = QToolButton()
+        self.doc_btn.setIcon(qta.icon("fa5s.question-circle"))
+        self.doc_btn.setToolTip("Ouvrir la documentation pip install")
+        self.doc_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(
+                QUrl("https://pip.pypa.io/en/stable/cli/pip_install/")
+            )
+        )
+        btn_line.addWidget(self.install_all_btn)
+        btn_line.addWidget(self.refresh_deps_btn)
+        btn_line.addWidget(self.doc_btn)
+        deps_layout.addLayout(btn_line)
+
+        layout.addWidget(deps_group)
+        self.required_packages = self._load_requirements()
+        self.refresh_deps_status()
         layout.addStretch(1)
         return widget
 
@@ -508,11 +565,17 @@ class MainWindow(QMainWindow):
    - Choisissez le dossier de sortie pour les données.
    - Sélectionnez le fichier contenant les liens produits.
    - Ajustez la taille des lots JSON et les options.
+   - Gérez les dépendances Python et installez-les au besoin.
 
 2. Onglet Scraping :
    - Sélectionnez la plage d'IDs à traiter.
    - Activez les fonctionnalités désirées.
    - Appuyez sur Lancer pour démarrer.
+
+3. Dépendances et installation automatique :
+   - Le statut de chaque module apparaît en vert ou rouge.
+   - Utilisez les boutons pour installer ou régulariser un module.
+   - Consultez le journal pour les erreurs courantes.
 
 La barre de progression et le minuteur indiquent l'avancement."""
         )
@@ -716,6 +779,94 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.log_area.insertPlainText(text)
         self.log_area.moveCursor(QTextCursor.End)
         self.log_area.ensureCursorVisible()
+
+    # ---------- Dependency management ----------
+    def _load_requirements(self) -> list[str]:
+        req = os.path.join(os.path.dirname(__file__), "requirements.txt")
+        packages: list[str] = []
+        if os.path.exists(req):
+            with open(req, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        name = re.split(r"[<>=]", line)[0]
+                        packages.append(name)
+        return packages
+
+    def _pkg_installed(self, name: str) -> bool:
+        return importlib.util.find_spec(name) is not None
+
+    def refresh_deps_status(self) -> None:
+        self.deps_table.setRowCount(len(self.required_packages))
+        self.install_btns: dict[str, QPushButton] = {}
+        for row, pkg in enumerate(self.required_packages):
+            self.deps_table.setItem(row, 0, QTableWidgetItem(pkg))
+            installed = self._pkg_installed(pkg)
+            item = QTableWidgetItem("OK" if installed else "Manquant")
+            color = QColor("green" if installed else "red")
+            item.setForeground(color)
+            self.deps_table.setItem(row, 1, item)
+            if installed:
+                self.deps_table.setCellWidget(row, 2, QWidget())
+            else:
+                btn = QPushButton("Installer")
+                btn.clicked.connect(
+                    lambda _=False, p=pkg: self.install_single_dep(p)
+                )
+                self.deps_table.setCellWidget(row, 2, btn)
+                self.install_btns[pkg] = btn
+
+    def install_single_dep(self, pkg: str) -> None:
+        self.append_log(f"Installation de {pkg}\n")
+        self.disable_dep_buttons()
+        self.pip_thread = PipInstaller([pkg])
+        self.pip_thread.finished.connect(self.on_pip_finished)
+        self.pip_thread.start()
+
+    def install_all_deps(self) -> None:
+        req = os.path.join(os.path.dirname(__file__), "requirements.txt")
+        self.append_log("Installation des dépendances\n")
+        self.disable_dep_buttons()
+        self.pip_thread = PipInstaller(["-r", req])
+        self.pip_thread.finished.connect(self.on_pip_finished)
+        self.pip_thread.start()
+
+    def disable_dep_buttons(self) -> None:
+        self.install_all_btn.setEnabled(False)
+        self.refresh_deps_btn.setEnabled(False)
+        for btn in self.install_btns.values():
+            btn.setEnabled(False)
+
+    def enable_dep_buttons(self) -> None:
+        self.install_all_btn.setEnabled(True)
+        self.refresh_deps_btn.setEnabled(True)
+        for btn in self.install_btns.values():
+            btn.setEnabled(True)
+
+    def on_pip_finished(self, pkg: str, ok: bool, output: str) -> None:
+        self.enable_dep_buttons()
+        self.append_log(output)
+        if ok:
+            QMessageBox.information(
+                self,
+                "Succès",
+                f"{pkg} installé avec succès",
+            )
+            self.statusBar().showMessage(
+                f"{pkg} installé avec succès",
+                5000,
+            )
+        else:
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Erreur lors de l'installation de {pkg}",
+            )
+            self.statusBar().showMessage(
+                f"Erreur lors de l'installation de {pkg}",
+                5000,
+            )
+        self.refresh_deps_status()
 
     def on_finished(self) -> None:
         self.launch_btn.setEnabled(True)
