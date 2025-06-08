@@ -99,11 +99,9 @@ class ImageScraper:
             if self.driver is None:
                 self.setup_driver()
             os.makedirs(self.root_folder, exist_ok=True)
-            total = (
-                len(list(urls)) if not isinstance(urls, list) else len(urls)
-            )
             if not isinstance(urls, list):
                 urls = list(urls)
+            total = len(urls)
             for index, url in enumerate(urls, start=1):
                 logger.info("🔍 Produit %d/%d : %s", index, total, url)
                 try:

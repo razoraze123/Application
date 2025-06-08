@@ -62,3 +62,30 @@ def test_scrape_images(monkeypatch, tmp_path):
     assert saved_dir.exists()
     files = sorted(os.listdir(saved_dir))
     assert files == ["img_0.webp", "img_1.webp"]
+
+
+def test_scrape_images_with_generator(monkeypatch, tmp_path):
+    driver = FakeDriver()
+
+    scraper = ImageScraper(root_folder=str(tmp_path))
+
+    monkeypatch.setattr(ImageScraper, "setup_driver", lambda self: driver)
+    monkeypatch.setattr(
+        ImageScraper,
+        "get_image_elements",
+        lambda self: driver.find_elements(),
+    )
+    monkeypatch.setattr(
+        urllib.request,
+        "urlretrieve",
+        lambda url, fp: open(fp, "wb").write(b"data"),
+    )
+    scraper.driver = driver
+    monkeypatch.setattr("time.sleep", lambda x: None)
+
+    urls = (u for u in ["http://product1", "http://product2"])
+    exit_code = scraper.scrape_images(urls)
+
+    assert exit_code == 0
+    assert driver.visited == ["http://product1", "http://product2"]
+    assert driver.quit_called
