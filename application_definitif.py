@@ -165,7 +165,8 @@ class ScrapingWorker(QThread):
             self.update_action(int(match.group(1)))
             self.increment_progress()
             return
-        if line.strip().startswith("✅"):
+        clean = line.lstrip()
+        if clean.startswith("✅") or clean.startswith("❌") or clean.startswith("⚠️") or "Erreur" in line:
             current = self.completed_totals.get(self.current_action, 0)
             self.update_action(current + 1)
             self.increment_progress()
@@ -221,6 +222,12 @@ class ScrapingWorker(QThread):
             for h in logging.getLogger().handlers:
                 if isinstance(h, logging.StreamHandler):
                     h.stream = sys.stdout
+            if self.overall_completed < self.total:
+                logger.warning(
+                    "Progress incomplet: %d/%d", self.overall_completed, self.total
+                )
+            elapsed = time.time() - self.start
+            self.progress.emit(100, elapsed, 0.0)
             self.finished.emit()
 
 
@@ -597,6 +604,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         elapsed: float,
         remaining: float,
     ) -> None:
+        percent = max(0, min(int(percent), 100))
         self.progress.set_animated_value(percent)
         txt = (
             f"Temps écoulé: {int(elapsed)}s | "
