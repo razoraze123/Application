@@ -200,13 +200,16 @@ class ScraperDemo(QWidget):
     # ------------------------------------------------------------------
     def inject_script(self) -> None:
         """Inject the click capture script into the loaded page."""
+        qwc_js = ""
         try:
             path = Path(__file__).resolve().parents[1] / "qwebchannel.js"
             with open(path, "r", encoding="utf-8") as f:
-                self.web_view.page().runJavaScript(f.read())
+                qwc_js = f.read()
         except Exception:
             pass
-        self.web_view.page().runJavaScript(BROWSER_SCRIPT)
+        self.web_view.page().runJavaScript(
+            qwc_js, lambda _: self.web_view.page().runJavaScript(BROWSER_SCRIPT)
+        )
 
     # ------------------------------------------------------------------
     def update_preview(self, selector: str, text: str) -> None:
