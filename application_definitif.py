@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import time
+import math
 
 from PySide6.QtCore import (
     Signal,
@@ -142,12 +143,7 @@ class ScrapingWorker(QThread):
         if actions.get("fiches"):
             self.totals["fiches"] = len(self.ids)
         if actions.get("export"):
-            fc_dir = self.session_paths["fiches"]
-            src = os.path.join(fc_dir, "fiches_concurrents")
-            txt_files = []
-            if os.path.isdir(src):
-                txt_files = [f for f in os.listdir(src) if f.endswith(".txt")]
-            self.totals["export"] = len(txt_files)
+            self.totals["export"] = math.ceil(len(self.ids) / (self.batch_size or 1))
 
         self.total = sum(self.totals.values()) or 1
         self.completed_totals = {k: 0 for k in self.totals}
@@ -400,11 +396,11 @@ class MainWindow(QMainWindow):
         self.toggle_log_btn.setCheckable(True)
         self.toggle_log_btn.clicked.connect(self.toggle_log)
 
-        self.copy_log_btn = QPushButton(qta.icon("fa5s.copy"), "")
+        self.copy_log_btn = QPushButton(qta.icon("fa5s.copy"), "Copier le journal")
         self.copy_log_btn.setToolTip("Copier le journal")
         self.copy_log_btn.clicked.connect(self.copy_log)
 
-        self.clear_log_btn = QPushButton(qta.icon("fa5s.trash"), "")
+        self.clear_log_btn = QPushButton(qta.icon("fa5s.trash"), "Vider le journal")
         self.clear_log_btn.setToolTip("Effacer le journal")
         self.clear_log_btn.clicked.connect(self.clear_log)
 
@@ -430,7 +426,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(widget)
 
         dir_layout = QHBoxLayout()
-        default_dir = os.getcwd()
+        default_dir = r"C:\\Users\\Lamine\\Desktop\\Application 1"
         self.dir_edit = QLineEdit(default_dir)
         dir_btn = QPushButton(qta.icon("fa5s.folder"), "Parcourir")
         dir_btn.clicked.connect(self.browse_dir)
@@ -439,14 +435,26 @@ class MainWindow(QMainWindow):
         dir_layout.addWidget(dir_btn)
         layout.addLayout(dir_layout)
 
+        sub_layout = QHBoxLayout()
+        self.subdir_edit = QLineEdit()
+        sub_layout.addWidget(QLabel("Nom du dossier principal:"))
+        sub_layout.addWidget(self.subdir_edit, 1)
+        layout.addLayout(sub_layout)
+
         file_layout = QHBoxLayout()
-        self.links_edit = QLineEdit()
+        default_links = (
+            r"C:\\Users\\Lamine\\Desktop\\Application 1\\liens_avec_id.txt"
+        )
+        self.links_edit = QLineEdit(default_links)
+        self.links_path = default_links
         self.links_edit.setReadOnly(True)
         links_btn = QPushButton(qta.icon("fa5s.folder-open"), "Fichier liens")
         links_btn.clicked.connect(self.browse_links_settings)
         file_layout.addWidget(self.links_edit, 1)
         file_layout.addWidget(links_btn)
         layout.addLayout(file_layout)
+        if os.path.exists(default_links):
+            self.load_ids(default_links)
 
         batch_layout = QHBoxLayout()
         batch_layout.addWidget(QLabel("Batch JSON:"))
@@ -462,6 +470,8 @@ class MainWindow(QMainWindow):
 
         self.batch_spin.valueChanged.connect(self.batch_slider.setValue)
         self.batch_slider.valueChanged.connect(self.batch_spin.setValue)
+        self.batch_slider.valueChanged.connect(self.update_export_estimate)
+        self.batch_spin.valueChanged.connect(self.update_export_estimate)
 
         batch_layout.addWidget(self.batch_slider, 1)
         batch_layout.addWidget(self.batch_spin)
@@ -565,6 +575,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
             "IDs sélectionnés : "
             f"{len(self.selected_ids)} / {len(self.all_ids)}"
         )
+        self.update_export_estimate()
 
     def select_all_ids(self) -> None:
         if not self.all_ids:
@@ -580,6 +591,15 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.count_label.setText(
             f"IDs sélectionnés : 0 / {len(self.all_ids)}"
         )
+        self.update_export_estimate()
+
+    def update_export_estimate(self) -> None:
+        if not self.selected_ids:
+            self.status_export.setText("")
+            return
+        batch = self.batch_spin.value() or 1
+        total = math.ceil(len(self.selected_ids) / batch)
+        self.status_export.setText(f"Export : 0/{total}")
 
     def start_actions(self) -> None:
         if not self.links_path or not os.path.exists(self.links_path):
@@ -597,6 +617,9 @@ La barre de progression et le minuteur indiquent l'avancement."""
             QMessageBox.information(self, "Info", "Aucune action sélectionnée")
             return
         output_dir = self.dir_edit.text().strip() or os.getcwd()
+        sub = self.subdir_edit.text().strip()
+        if sub:
+            output_dir = os.path.join(output_dir, sub)
         batch_size = self.batch_spin.value()
         self.paths = {
             "variantes": os.path.join(output_dir, "variantes"),
