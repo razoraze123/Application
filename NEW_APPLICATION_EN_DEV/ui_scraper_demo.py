@@ -10,14 +10,18 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QTextEdit,
     QPushButton,
+    QMessageBox,
 )
 from PySide6.QtCore import QUrl, QObject, Slot
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 from pathlib import Path
+import logging
 
 import sys
 import os
+
+logger = logging.getLogger(__name__)
 
 # Make sure the scraper module is importable when launched from this folder or
 # its parent directory.
@@ -207,9 +211,20 @@ class ScraperDemo(QWidget):
                 qwc_js = f.read()
         except Exception:
             pass
-        self.web_view.page().runJavaScript(
-            qwc_js, lambda _: self.web_view.page().runJavaScript(BROWSER_SCRIPT)
-        )
+        def after_qwc(_res: object) -> None:
+            def check_qt(result: object) -> None:
+                if result == "undefined":
+                    QMessageBox.warning(
+                        self,
+                        "Web Channel",
+                        "Le canal Web n'a pas pu \u00eatre inject\u00e9.",
+                    )
+                    logger.warning("Web channel injection failed.")
+                self.web_view.page().runJavaScript(BROWSER_SCRIPT)
+
+            self.web_view.page().runJavaScript("typeof qt", check_qt)
+
+        self.web_view.page().runJavaScript(qwc_js, after_qwc)
 
     # ------------------------------------------------------------------
     def update_preview(self, selector: str, text: str) -> None:
