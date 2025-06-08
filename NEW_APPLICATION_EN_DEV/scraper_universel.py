@@ -69,15 +69,17 @@ logger = logging.getLogger(__name__)
 
 
 def _load_mapping(
-    mapping: Optional[Dict[str, str]] = None, mapping_file: Optional[str] = None
-) -> Dict[str, str]:
+    mapping: Optional[Dict[str, Any]] = None, mapping_file: Optional[str] = None
+) -> Dict[str, Any]:
     """Return a mapping dict loaded from *mapping_file* or *mapping*."""
 
     if mapping is not None:
         if not isinstance(mapping, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) for k, v in mapping.items()
+            isinstance(k, str) and isinstance(v, (str, dict)) for k, v in mapping.items()
         ):
-            raise ValueError("mapping must be a dict of str to str")
+            raise ValueError(
+                "mapping must be a dict with str keys and str or dict values"
+            )
         return mapping
     if not mapping_file:
         raise ValueError("No mapping provided")
@@ -101,27 +103,65 @@ def _load_mapping(
         raise ValueError(f"Invalid JSON mapping: {exc}") from exc
 
 
+def clean_description(text: str) -> str:
+    lines = text.splitlines()
+    ignored_keywords = [
+        "livraison",
+        "retour",
+        "contact",
+        "paiement",
+        "bob crew",
+        "service client",
+    ]
+    return "\n".join(
+        line
+        for line in lines
+        if len(line.strip()) > 30
+        and not any(kw in line.lower() for kw in ignored_keywords)
+    )
+
+
 def _extract_with_css(
-    soup: BeautifulSoup, selector: str
+    soup: BeautifulSoup, selector: Union[str, Dict[str, Any]]
 ) -> Optional[Union[str, list[str]]]:
     """Return the text of the first match or a list for multiple matches."""
 
+    options: Dict[str, Any] = {}
+    css = selector
+    if isinstance(selector, dict):
+        css = selector.get("selector")
+        if not isinstance(css, str):
+            logger.error("Invalid mapping: missing selector in %s", selector)
+            return None
+        options = selector
+
     try:
-        elems = soup.select(selector)
+        elems = soup.select(css) if isinstance(css, str) else []
     except Exception as exc:  # malformed selector
-        logger.error("Invalid CSS selector %s: %s", selector, exc)
+        logger.error("Invalid CSS selector %s: %s", css, exc)
         return None
     if not elems:
         return None
 
     values: list[str] = []
     for elem in elems:
-        if elem.name == "img" and elem.has_attr("src"):
-            values.append(elem["src"].strip())
+        target = elem
+        if options.get("first_paragraph"):
+            first = elem.select_one("p")
+            if first is not None:
+                target = first
+        if target.name == "img" and target.has_attr("src"):
+            values.append(target["src"].strip())
+            continue
+
+        if options.get("raw_html"):
+            text = target.decode_contents()
         else:
-            text = elem.get_text(strip=True)
-            if text:
-                values.append(text)
+            text = target.get_text(separator="\n", strip=True)
+        if options.get("clean"):
+            text = clean_description(text)
+        if text:
+            values.append(text)
 
     if not values:
         return None
@@ -162,7 +202,7 @@ def _extract_with_xpath(
 
 def extract_fields(
     url: str,
-    mapping: Dict[str, str],
+    mapping: Dict[str, Any],
     *,
     timeout: int = 10,
     user_agent: Optional[str] = None,
@@ -175,8 +215,8 @@ def extract_fields(
     url:
         Page to scrape.
     mapping:
-        Dictionary where keys are field names and values are CSS selectors
-        or XPath expressions.
+        Dictionary where keys are field names and values are CSS selectors,
+        XPath expressions or a dictionary with advanced options.
     timeout:
         Request timeout in seconds.
     user_agent:
@@ -185,9 +225,11 @@ def extract_fields(
         When ``True`` debug information is logged.
     """
     if not isinstance(mapping, dict) or not all(
-        isinstance(k, str) and isinstance(v, str) for k, v in mapping.items()
+        isinstance(k, str) and isinstance(v, (str, dict)) for k, v in mapping.items()
     ):
-        raise ValueError("mapping must be a dict of str to str")
+        raise ValueError(
+            "mapping must be a dict with str keys and str or dict values"
+        )
 
     headers = {"User-Agent": user_agent} if user_agent else None
     if verbose:
@@ -211,8 +253,10 @@ def extract_fields(
 
     data: Dict[str, Any] = {}
     for field, selector in mapping.items():
-        value: Optional[str] = None
-        if selector.lstrip().startswith("/"):
+        value: Optional[Union[str, list[str]]] = None
+        if isinstance(selector, dict):
+            value = _extract_with_css(soup, selector)
+        elif isinstance(selector, str) and selector.lstrip().startswith("/"):
             value = _extract_with_xpath(tree, selector)
         else:
             value = _extract_with_css(soup, selector)
@@ -225,7 +269,7 @@ def extract_fields(
 
 def scrap_fiche_generique(
     url: str,
-    mapping: Optional[Dict[str, str]] = None,
+    mapping: Optional[Dict[str, Any]] = None,
     *,
     mapping_file: Optional[str] = None,
     timeout: int = 10,
