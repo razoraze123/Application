@@ -257,3 +257,17 @@ python scraper_images.py --config config.yaml
 - `--root` : dossier de destination des images
 
 Les arguments passés en ligne de commande écrasent les valeurs du fichier de configuration.
+
+## Lancer `scraper_links.py` en ligne de commande
+
+Le script `scraper_links.py` permet de récupérer les paires nom/lien d'une page en une commande.
+
+```bash
+python scraper_links.py --url https://exemple.com --selector "a.product" --output liens.csv
+```
+
+### Options CLI principales
+
+- `--url` : page à analyser
+- `--selector` : sélecteur CSS à appliquer
+- `--output` : fichier CSV de destination (`links.csv` par défaut)
