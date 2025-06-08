@@ -1,10 +1,26 @@
-"""Simple configurable scraper for e-commerce product pages."""
+"""Universal product page scraper.
+
+This module exposes :func:`extract_fields` which downloads a page and
+extracts fields based on a mapping of names to CSS selectors or XPath
+expressions.  When executed as a script without arguments, a small demo
+scrape is performed on a page from https://books.toscrape.com/.
+
+Architecture
+------------
+- ``extract_fields`` : pure function containing the scraping logic.
+- ``scrap_fiche_generique`` : backward compatible wrapper allowing a
+  mapping dict or mapping file.
+- ``main`` : command line interface. If called without parameters, the
+  demo run is triggered. Otherwise ``--url`` and a mapping definition
+  are expected.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import logging
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -18,6 +34,10 @@ except Exception:  # pragma: no cover - optional dependency
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# utility helpers
+# ---------------------------------------------------------------------------
 
 def _load_mapping(mapping: Optional[Dict[str, str]] = None,
                   mapping_file: Optional[str] = None) -> Dict[str, str]:
@@ -65,14 +85,23 @@ def _extract_with_xpath(tree: "html.HtmlElement", selector: str) -> Optional[str
     return str(result).strip()
 
 
-def scrap_fiche_generique(url: str,
-                          mapping: Optional[Dict[str, str]] = None,
-                          *,
-                          mapping_file: Optional[str] = None,
-                          timeout: int = 10) -> Dict[str, Any]:
-    """Return the scraped fields defined in *mapping* from *url*."""
-    mapping = _load_mapping(mapping, mapping_file)
+# ---------------------------------------------------------------------------
+# public API
+# ---------------------------------------------------------------------------
 
+def extract_fields(url: str, mapping: Dict[str, str], *, timeout: int = 10) -> Dict[str, Any]:
+    """Download *url* and return the fields defined in *mapping*.
+
+    Parameters
+    ----------
+    url:
+        Page to scrape.
+    mapping:
+        Dictionary where keys are field names and values are CSS selectors
+        or XPath expressions.
+    timeout:
+        Request timeout in seconds.
+    """
     try:
         resp = requests.get(url, timeout=timeout)
         resp.raise_for_status()
@@ -99,8 +128,39 @@ def scrap_fiche_generique(url: str,
     return data
 
 
-def main() -> None:
-    """Simple command line interface for :func:`scrap_fiche_generique`."""
+def scrap_fiche_generique(url: str,
+                          mapping: Optional[Dict[str, str]] = None,
+                          *,
+                          mapping_file: Optional[str] = None,
+                          timeout: int = 10) -> Dict[str, Any]:
+    """Backward compatible wrapper around :func:`extract_fields`."""
+    resolved = _load_mapping(mapping, mapping_file)
+    return extract_fields(url, resolved, timeout=timeout)
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def main(argv: Optional[list[str]] = None) -> None:
+    """Entry point for the command line interface."""
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if not argv:
+        demo_url = (
+            "https://books.toscrape.com/catalogue/"
+            "a-light-in-the-attic_1000/index.html"
+        )
+        demo_mapping = {
+            "titre": "h1",
+            "prix": ".price_color",
+            "disponibilite": "//p[contains(@class,'instock')]",
+        }
+        data = extract_fields(demo_url, demo_mapping)
+        print(json.dumps(data, ensure_ascii=False))
+        return
+
     parser = argparse.ArgumentParser(description="Universal scraper")
     parser.add_argument("--url", required=True, help="URL of the page")
     group = parser.add_mutually_exclusive_group(required=True)
@@ -112,8 +172,7 @@ def main() -> None:
         "--mapping",
         help="Mapping JSON string",
     )
-
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO)
 
@@ -126,4 +185,3 @@ def main() -> None:
 
 if __name__ == "__main__":  # pragma: no cover - CLI
     main()
-
