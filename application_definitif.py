@@ -650,7 +650,11 @@ La barre de progression et le minuteur indiquent l'avancement."""
 
     def copy_log(self) -> None:
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.log_area.toPlainText())
+        if self.log_area.isVisible():
+            text = self.log_area.toPlainText()
+        else:
+            text = "".join(self.internal_logs)
+        clipboard.setText(text)
         self.statusBar().showMessage("Journal copié !", 3000)
 
     def clear_log(self) -> None:
