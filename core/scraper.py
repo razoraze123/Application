@@ -119,14 +119,21 @@ def scrap_produits_par_ids(
     id_url_map: dict,
     ids_selectionnes: list,
     base_dir: str,
+    headless: bool = False,
 ) -> int:
-    """Scrape product variants and generate a WooCommerce spreadsheet."""
+    """Scrape product variants and generate a WooCommerce spreadsheet.
+
+    Parameters
+    ----------
+    headless : bool, optional
+        If ``True`` Selenium runs without opening a browser window.
+    """
     fichier_excel = os.path.join(base_dir, "woocommerce_mix.xlsx")
     driver = None
     woocommerce_rows = []
     exit_code = 0
     try:
-        driver = _get_driver(headless=True)
+        driver = _get_driver(headless=headless)
 
         logger.info(
             "🚀 Début du scraping de %d liens...",
@@ -226,15 +233,22 @@ def scrap_fiches_concurrents(
     id_url_map: dict,
     ids_selectionnes: list,
     base_dir: str,
+    headless: bool = False,
 ) -> int:
-    """Extract competitor pages as HTML snippets."""
+    """Extract competitor pages as HTML snippets.
+
+    Parameters
+    ----------
+    headless : bool, optional
+        Run Selenium without GUI when ``True``.
+    """
     save_directory = os.path.join(base_dir, "fiches_concurrents")
     recap_excel_path = os.path.join(base_dir, "recap_concurrents.xlsx")
     driver = None
     exit_code = 0
     recap_data = []
     try:
-        driver = _get_driver(headless=False)
+        driver = _get_driver(headless=headless)
 
         os.makedirs(save_directory, exist_ok=True)
         total = len(ids_selectionnes)
