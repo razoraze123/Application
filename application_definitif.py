@@ -147,6 +147,7 @@ class ScrapingWorker(QThread):
         self._buffer = ""
 
     def handle_output(self, text: str) -> None:
+        """Accumulate output until newline and parse completed lines."""
         self._buffer += text
         if "\n" in self._buffer:
             lines = self._buffer.split("\n")
@@ -155,6 +156,7 @@ class ScrapingWorker(QThread):
                 self.parse_line(line)
 
     def parse_line(self, line: str) -> None:
+        """Interpret stdout lines to update progress."""
         match = re.search(r"\[(\d+)/(\d+)\]", line)
         if match:
             self.update_action(int(match.group(1)))
@@ -632,6 +634,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.time_label.setText(txt)
 
     def update_action_status(self, action: str, done: int, total: int) -> None:
+        """Display per-action progress in labels and table."""
         text = f"{action.capitalize()} : {done}/{total}"
         if action == "variantes":
             self.status_var.setText(text)
@@ -649,6 +652,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.log_area.setVisible(checked)
 
     def copy_log(self) -> None:
+        """Copy the current log to the clipboard."""
         clipboard = QApplication.clipboard()
         if self.log_area.isVisible():
             text = self.log_area.toPlainText()
@@ -658,6 +662,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.statusBar().showMessage("Journal copié !", 3000)
 
     def clear_log(self) -> None:
+        """Erase the visible log and clear the internal buffer."""
         self.log_area.clear()
         self.internal_logs.clear()
         self.statusBar().showMessage("Journal vidé !", 3000)
