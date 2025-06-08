@@ -29,7 +29,7 @@ def charger_liens_avec_id(base_dir: str) -> dict:
     id_url_map = {}
     liens_id_txt = os.path.join(base_dir, "liens_avec_id.txt")
     if not os.path.exists(liens_id_txt):
-        print(f"Fichier introuvable : {liens_id_txt}")
+        logger.warning(f"Fichier introuvable : {liens_id_txt}")
         return id_url_map
     with open(liens_id_txt, "r", encoding="utf-8") as f:
         for line in f:
@@ -44,7 +44,7 @@ def charger_liens_avec_id_fichier(fichier: str) -> dict:
     """Load ID→URL mapping from an explicit text file path."""
     id_url_map = {}
     if not os.path.exists(fichier):
-        print(f"Fichier introuvable : {fichier}")
+        logger.warning(f"Fichier introuvable : {fichier}")
         return id_url_map
     with open(fichier, "r", encoding="utf-8") as f:
         for line in f:
@@ -63,5 +63,5 @@ def extraire_ids_depuis_input(input_str: str) -> list:
         end_num = int(end_id[1:])
         return [f"A{i}" for i in range(start_num, end_num + 1)]
     except Exception:
-        print("⚠️ Format invalide. Utilise le format A1-A5.")
+        logger.error("⚠️ Format invalide. Utilise le format A1-A5.")
         return []
