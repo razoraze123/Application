@@ -5,6 +5,7 @@ import re
 import json
 import time
 import random
+import math
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -328,14 +329,17 @@ def export_fiches_concurrents_json(
         return match.group(1).strip() if match else ""
 
     exit_code = 0
+    total_batches = math.ceil(len(fichiers_txt) / taille_batch) if fichiers_txt else 0
     try:
         for i in range(0, len(fichiers_txt), taille_batch):
+            batch_num = i // taille_batch + 1
             batch = fichiers_txt[i:i + taille_batch]
             data_batch = []
 
+            logger.info("📦 %d / %d", batch_num, total_batches)
             logger.info(
                 "🔹 Batch %d : %d fichiers",
-                i // taille_batch + 1,
+                batch_num,
                 len(batch),
             )
             for fichier in batch:
