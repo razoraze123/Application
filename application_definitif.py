@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
     QGroupBox,
+    QSystemTrayIcon,
 )
 from PySide6.QtGui import (
     QTextCursor,
@@ -994,9 +995,26 @@ La barre de progression et le minuteur indiquent l'avancement."""
         )
         if confirm != QMessageBox.Yes:
             return
-        self.statusBar().showMessage("Redémarrage en cours…", 3000)
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            tray = QSystemTrayIcon(self)
+            tray.setIcon(self.windowIcon())
+            tray.show()
+            tray.showMessage(
+                "Application",
+                "Redémarrage…",
+                QSystemTrayIcon.Information,
+                1000,
+            )
+        else:
+            self.statusBar().showMessage("Redémarrage…", 3000)
         python = sys.executable
-        os.execv(python, [python] + sys.argv)
+        script = os.path.abspath(__file__)
+        try:
+            os.execv(python, [python, script])
+        except Exception as exc:
+            logger.exception(
+                "Échec du redémarrage avec %s %s", python, script
+            )
 
 
 def main() -> None:
