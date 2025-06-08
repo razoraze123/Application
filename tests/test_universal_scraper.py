@@ -6,6 +6,7 @@ import socketserver
 import threading
 import logging
 import requests
+from NEW_APPLICATION_EN_DEV import scraper_universel
 from NEW_APPLICATION_EN_DEV.scraper_universel import scrap_fiche_generique
 
 
@@ -93,4 +94,42 @@ def test_request_error(monkeypatch, caplog):
     result = scrap_fiche_generique('http://bad', {'title': 'h1'})
     assert result == {}
     assert 'Failed to fetch http://bad' in caplog.text
+
+
+def test_lxml_parser_used(monkeypatch, requests_mock):
+    pytest = __import__('pytest')
+    pytest.importorskip('lxml')
+
+    captured = {}
+    html = '<html><h1>Title</h1></html>'
+    requests_mock.get('http://example.com', text=html)
+
+    real_bs = scraper_universel.BeautifulSoup
+
+    def fake_bs(page, parser):
+        captured['parser'] = parser
+        return real_bs(page, parser)
+
+    monkeypatch.setattr(scraper_universel, 'BeautifulSoup', fake_bs)
+    scrap_fiche_generique('http://example.com', {'title': 'h1'})
+
+    assert captured['parser'] == 'lxml'
+
+
+def test_html_parser_fallback(monkeypatch, requests_mock):
+    captured = {}
+    html = '<html><h1>Title</h1></html>'
+    requests_mock.get('http://example.com', text=html)
+
+    real_bs = scraper_universel.BeautifulSoup
+
+    def fake_bs(page, parser):
+        captured['parser'] = parser
+        return real_bs(page, parser)
+
+    monkeypatch.setattr(scraper_universel, 'BeautifulSoup', fake_bs)
+    monkeypatch.setattr(scraper_universel, 'html', None)
+    scrap_fiche_generique('http://example.com', {'title': 'h1'})
+
+    assert captured['parser'] == 'html.parser'
 
