@@ -236,6 +236,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Scraping Produit")
         self.resize(850, 600)
+        self.statusBar()
 
         self.settings = QSettings("scraping_app", "ui")
         style_dir = os.path.join(os.path.dirname(__file__), "ui")
@@ -251,6 +252,7 @@ class MainWindow(QMainWindow):
         self.id_url_map: dict[str, str] = {}
         self.all_ids: list[str] = []
         self.selected_ids: list[str] = []
+        self.internal_logs: list[str] = []
 
         tabs = QTabWidget()
         tabs.setTabPosition(QTabWidget.West)
@@ -649,11 +651,15 @@ La barre de progression et le minuteur indiquent l'avancement."""
     def copy_log(self) -> None:
         clipboard = QApplication.clipboard()
         clipboard.setText(self.log_area.toPlainText())
+        self.statusBar().showMessage("Journal copié !", 3000)
 
     def clear_log(self) -> None:
         self.log_area.clear()
+        self.internal_logs.clear()
+        self.statusBar().showMessage("Journal vidé !", 3000)
 
     def append_log(self, text: str) -> None:
+        self.internal_logs.append(text)
         self.log_area.moveCursor(QTextCursor.End)
         self.log_area.insertPlainText(text)
         self.log_area.moveCursor(QTextCursor.End)
