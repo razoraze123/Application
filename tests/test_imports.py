@@ -26,6 +26,9 @@ class TestImports(unittest.TestCase):
             self.skipTest('dépendances selenium/pandas manquantes')
         importlib.import_module('core.scraper')
 
+    def test_collection_scraper_imports(self):
+        importlib.import_module('core.collection_scraper')
+
 
 if __name__ == '__main__':
     unittest.main()
