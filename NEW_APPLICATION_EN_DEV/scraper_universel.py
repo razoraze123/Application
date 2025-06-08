@@ -55,8 +55,10 @@ from bs4 import BeautifulSoup
 
 try:
     from lxml import html  # type: ignore
+    from lxml.html import HtmlElement  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     html = None
+    HtmlElement = Any  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +129,7 @@ def _extract_with_css(
 
 
 def _extract_with_xpath(
-    tree: "html.HtmlElement", selector: str
+    tree: Optional[HtmlElement], selector: str
 ) -> Optional[Union[str, list[str]]]:
     """Return the text of the first match or a list for multiple matches."""
 
