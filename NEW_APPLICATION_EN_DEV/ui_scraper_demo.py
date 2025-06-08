@@ -11,7 +11,18 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QPushButton,
 )
-from NEW_APPLICATION_EN_DEV.scraper_universel import extract_fields
+
+import sys
+import os
+
+# Make sure the scraper module is importable when launched from this folder or
+# its parent directory.
+sys.path.append(os.path.dirname(__file__))
+try:  # Try local import first
+    from scraper_universel import extract_fields
+except ModuleNotFoundError:  # Fallback when launched from parent directory
+    sys.path.append(os.path.join(os.path.dirname(__file__), "NEW_APPLICATION_EN_DEV"))
+    from scraper_universel import extract_fields
 
 
 class ScraperDemo(QWidget):
