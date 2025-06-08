@@ -996,6 +996,14 @@ La barre de progression et le minuteur indiquent l'avancement."""
         )
         if confirm != QMessageBox.Yes:
             return
+        python = sys.executable
+        script = os.path.abspath(__file__)
+        cwd = os.getcwd()
+        logger.info("Redémarrage avec :")
+        logger.info("  python : %s", python)
+        logger.info("  script : %s", script)
+        logger.info("  cwd    : %s", cwd)
+
         if QSystemTrayIcon.isSystemTrayAvailable():
             tray = QSystemTrayIcon(self)
             tray.setIcon(self.windowIcon())
@@ -1011,19 +1019,20 @@ La barre de progression et le minuteur indiquent l'avancement."""
                 "Redémarrage de l'application…",
                 3000,
             )
-        python = sys.executable
-        script = os.path.abspath(__file__)
-        logger.info("Redémarrage avec %s %s", python, script)
+
+        os.chdir(os.path.dirname(script))
         try:
+            if not os.path.exists(script):
+                raise FileNotFoundError(f"Script introuvable : {script}")
             os.execv(python, [python, script])
-        except Exception:
-            logger.exception(
-                "Échec du redémarrage avec %s %s", python, script
-            )
+        except Exception as e:
+            logger.exception("Échec du redémarrage avec %s %s", python, script)
             QMessageBox.critical(
                 self,
                 "Erreur",
-                traceback.format_exc(),
+                f"Redémarrage échoué !\n\n"
+                f"python : {python}\nscript : {script}\ncwd : {cwd}\n\n"
+                f"Erreur : {e}\n\n{traceback.format_exc()}",
             )
 
 
