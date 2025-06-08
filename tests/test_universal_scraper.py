@@ -4,6 +4,8 @@ import sys
 import http.server
 import socketserver
 import threading
+import logging
+import requests
 from NEW_APPLICATION_EN_DEV.scraper_universel import scrap_fiche_generique
 
 
@@ -79,4 +81,16 @@ def test_cli(tmp_path):
 
     data = json.loads(result.stdout)
     assert data['title'] == 'Title'
+
+
+def test_request_error(monkeypatch, caplog):
+    def fake_get(url, timeout=10):
+        raise requests.exceptions.RequestException('boom')
+
+    monkeypatch.setattr(requests, 'get', fake_get)
+
+    caplog.set_level(logging.ERROR)
+    result = scrap_fiche_generique('http://bad', {'title': 'h1'})
+    assert result == {}
+    assert 'Failed to fetch http://bad' in caplog.text
 
