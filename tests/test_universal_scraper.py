@@ -133,3 +133,24 @@ def test_html_parser_fallback(monkeypatch, requests_mock):
 
     assert captured['parser'] == 'html.parser'
 
+
+def test_advanced_css_options(requests_mock):
+    html = (
+        "<html>"
+        "<div class='prose'>"
+        "<p>Intro paragraph with sufficient length to keep.</p>"
+        "<p>Informations livraison rapide.</p>"
+        "</div>"
+        "</html>"
+    )
+    requests_mock.get('http://example.com', text=html)
+    mapping = {
+        'desc': {
+            'selector': '.prose',
+            'first_paragraph': True,
+            'clean': True,
+        }
+    }
+    data = scrap_fiche_generique('http://example.com', mapping)
+    assert data['desc'] == 'Intro paragraph with sufficient length to keep.'
+
