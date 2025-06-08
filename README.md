@@ -155,8 +155,7 @@ Les paramètres seront stockés dans la configuration puis passés à `qt-materi
 
 Note :
 Ce projet est à usage strictement personnel et n’est pas destiné à une diffusion publique.
-
-Des scripts prototypes étaient présents dans `NEW_APPLICATION_EN_DEV/`. Ce dossier a été supprimé pour clarifier la version officielle.
+Des scripts prototypes sont disponibles dans `NEW_APPLICATION_EN_DEV/`, notamment `scraper_universel.py` qui propose une interface en ligne de commande.
 
 📦 css-selector-generator
 Ce dossier contient une librairie open source JavaScript embarquée pour générer automatiquement des sélecteurs CSS uniques à partir d’un élément du DOM.
@@ -271,3 +270,24 @@ python scraper_links.py --url https://exemple.com --selector "a.product" --outpu
 - `--url` : page à analyser
 - `--selector` : sélecteur CSS à appliquer
 - `--output` : fichier CSV de destination (`links.csv` par défaut)
+
+## Lancer `scraper_universel.py` en ligne de commande
+
+Le script `scraper_universel.py` extrait des champs d'une page produit selon une correspondance JSON ou YAML. Un des arguments `--mapping-file` ou `--mapping` est obligatoire.
+
+```bash
+python -m NEW_APPLICATION_EN_DEV.scraper_universel --url https://exemple.com --mapping-file mapping.json
+```
+
+Exemple avec une correspondance inline :
+
+```bash
+python -m NEW_APPLICATION_EN_DEV.scraper_universel --url https://exemple.com --mapping '{"title": "h1", "price": ".price"}'
+```
+
+### Options CLI principales
+
+- `--url` : page à analyser
+- `--mapping-file` : fichier JSON ou YAML définissant les sélecteurs
+- `--mapping` : chaîne JSON à utiliser directement
+
