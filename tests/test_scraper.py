@@ -1,4 +1,6 @@
 import pytest
+pytest.importorskip("selenium")
+pytest.importorskip("pandas")
 
 from core import scraper as scr
 

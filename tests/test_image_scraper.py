@@ -1,3 +1,6 @@
+import pytest
+pytest.importorskip("selenium")
+
 import os
 import urllib.request
 
