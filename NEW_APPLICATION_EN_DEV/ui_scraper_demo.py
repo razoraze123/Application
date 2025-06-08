@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QUrl, QObject, Slot
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineScript
 from PySide6.QtWebChannel import QWebChannel
 from pathlib import Path
 import logging
@@ -112,6 +113,7 @@ class ScraperDemo(QWidget):
         self.add_btn = QPushButton("Ajouter au mapping")
 
         self.web_view = QWebEngineView()
+        self._script_added = False
 
         self.scrap_btn = QPushButton("Scraper")
         self.example_btn = QPushButton("Exemple")
@@ -211,20 +213,14 @@ class ScraperDemo(QWidget):
                 qwc_js = f.read()
         except Exception:
             pass
-        def after_qwc(_res: object) -> None:
-            def check_qt(result: object) -> None:
-                if result == "undefined":
-                    QMessageBox.warning(
-                        self,
-                        "Web Channel",
-                        "Le canal Web n'a pas pu \u00eatre inject\u00e9.",
-                    )
-                    logger.warning("Web channel injection failed.")
-                self.web_view.page().runJavaScript(BROWSER_SCRIPT)
 
-            self.web_view.page().runJavaScript("typeof qt", check_qt)
-
-        self.web_view.page().runJavaScript(qwc_js, after_qwc)
+        if not self._script_added:
+            script = QWebEngineScript()
+            script.setWorldId(QWebEngineScript.MainWorld)
+            script.setInjectionPoint(QWebEngineScript.DocumentReady)
+            script.setSourceCode("\n".join([qwc_js, BROWSER_SCRIPT]))
+            self.web_view.page().scripts().insert(script)
+            self._script_added = True
 
     # ------------------------------------------------------------------
     def update_preview(self, selector: str, text: str) -> None:
