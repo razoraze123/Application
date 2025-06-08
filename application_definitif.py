@@ -35,7 +35,12 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QGroupBox,
 )
-from PySide6.QtGui import QTextCursor, QColor, QDesktopServices
+from PySide6.QtGui import (
+    QTextCursor,
+    QColor,
+    QTextCharFormat,
+    QDesktopServices,
+)
 import importlib.util
 import subprocess
 import qtawesome as qta
@@ -296,8 +301,11 @@ class MainWindow(QMainWindow):
         tabs.setTabPosition(QTabWidget.West)
         tabs.addTab(self._build_scraping_tab(), "Scraping")
         tabs.addTab(self._build_settings_tab(), "Paramètres")
+        tabs.addTab(self._build_update_tab(), "Mise à jour")
         tabs.addTab(self._build_guide_tab(), "Guide")
         self.setCentralWidget(tabs)
+
+        self.repo_dir = os.path.dirname(os.path.abspath(__file__))
 
         self.worker = None
 
@@ -553,6 +561,31 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
         return widget
 
+    def _build_update_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        warn = QLabel(
+            "Attention : la mise à jour écrase vos modifications locales non synchronisées !"
+        )
+        warn.setWordWrap(True)
+        layout.addWidget(warn)
+
+        self.update_log = QTextEdit()
+        self.update_log.setReadOnly(True)
+        layout.addWidget(self.update_log, 1)
+
+        btn_line = QHBoxLayout()
+        self.update_btn = QPushButton("Mettre à jour depuis Git")
+        self.update_btn.clicked.connect(self.update_from_git)
+        self.restart_btn = QPushButton("Redémarrer l'application")
+        self.restart_btn.clicked.connect(self.restart_app)
+        btn_line.addWidget(self.update_btn)
+        btn_line.addWidget(self.restart_btn)
+        layout.addLayout(btn_line)
+
+        return widget
+
     def _build_guide_tab(self) -> QWidget:
         widget = QWidget()
         layout = QVBoxLayout(widget)
@@ -574,8 +607,11 @@ class MainWindow(QMainWindow):
 
 3. Dépendances et installation automatique :
    - Le statut de chaque module apparaît en vert ou rouge.
-   - Utilisez les boutons pour installer ou régulariser un module.
-   - Consultez le journal pour les erreurs courantes.
+   - Utilisez les boutons "Installer" pour agir dans le même environnement Python.
+   - Cliquez sur "Actualiser la liste" après une installation pour forcer la détection.
+   - Certains modules peuvent nécessiter un redémarrage complet pour être pris en compte.
+   - Des conflits sont possibles si plusieurs versions de Python sont présentes.
+   - Installer depuis l'application limite ces problèmes de venv.
 
 La barre de progression et le minuteur indiquent l'avancement."""
         )
@@ -780,6 +816,15 @@ La barre de progression et le minuteur indiquent l'avancement."""
         self.log_area.moveCursor(QTextCursor.End)
         self.log_area.ensureCursorVisible()
 
+    def append_update_log(self, text: str, color: str = "white") -> None:
+        cursor = self.update_log.textCursor()
+        fmt = QTextCharFormat()
+        fmt.setForeground(QColor(color))
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(text, fmt)
+        self.update_log.setTextCursor(cursor)
+        self.update_log.ensureCursorVisible()
+
     # ---------- Dependency management ----------
     def _load_requirements(self) -> list[str]:
         req = os.path.join(os.path.dirname(__file__), "requirements.txt")
@@ -867,6 +912,25 @@ La barre de progression et le minuteur indiquent l'avancement."""
                 5000,
             )
         self.refresh_deps_status()
+        if ok:
+            if pkg.startswith("-r"):
+                missing = [
+                    p for p in self.required_packages if not self._pkg_installed(p)
+                ]
+                if missing:
+                    QMessageBox.information(
+                        self,
+                        "Redémarrage recommandé",
+                        "Un redémarrage peut être nécessaire pour finaliser l'installation.",
+                    )
+            else:
+                target = pkg.split()[0]
+                if not self._pkg_installed(target):
+                    QMessageBox.information(
+                        self,
+                        "Redémarrage recommandé",
+                        "Le module reste manquant. Redémarrez l'application.",
+                    )
 
     def on_finished(self) -> None:
         self.launch_btn.setEnabled(True)
@@ -897,6 +961,42 @@ La barre de progression et le minuteur indiquent l'avancement."""
             self.theme_toggle.setIcon(qta.icon("fa5s.sun"))
             self.theme_toggle.setText("Mode clair")
         self.theme_toggle.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+    def update_from_git(self) -> None:
+        cmd = ["git", "pull", "origin", "main"]
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, cwd=self.repo_dir
+        )
+        output = proc.stdout + proc.stderr
+        for line in output.splitlines():
+            low = line.lower()
+            if "error" in low or "fatal" in low:
+                color = "red"
+            elif "warning" in low:
+                color = "orange"
+            else:
+                color = "green"
+            self.append_update_log(line + "\n", color)
+        if proc.returncode == 0:
+            commit = subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                cwd=self.repo_dir,
+            ).stdout.strip()
+            self.append_update_log(f"Version : {commit}\n", "blue")
+
+    def restart_app(self) -> None:
+        confirm = QMessageBox.question(
+            self,
+            "Redémarrer",
+            "Voulez-vous redémarrer l'application ?",
+        )
+        if confirm != QMessageBox.Yes:
+            return
+        self.statusBar().showMessage("Redémarrage en cours…", 3000)
+        python = sys.executable
+        os.execv(python, [python] + sys.argv)
 
 
 def main() -> None:
