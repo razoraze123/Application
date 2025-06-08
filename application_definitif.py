@@ -3,7 +3,6 @@ import re
 import sys
 import time
 import math
-import traceback
 
 from PySide6.QtCore import (
     Signal,
@@ -35,7 +34,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
     QGroupBox,
-    QSystemTrayIcon,
 )
 from PySide6.QtGui import (
     QTextCursor,
@@ -989,6 +987,9 @@ La barre de progression et le minuteur indiquent l'avancement."""
             self.append_update_log(f"Version : {commit}\n", "blue")
 
     def restart_app(self) -> None:
+        import sys, os, traceback
+        from PySide6.QtWidgets import QMessageBox
+
         confirm = QMessageBox.question(
             self,
             "Redémarrer",
@@ -996,34 +997,23 @@ La barre de progression et le minuteur indiquent l'avancement."""
         )
         if confirm != QMessageBox.Yes:
             return
+
         python = sys.executable
         script = os.path.abspath(__file__)
+        script_dir = os.path.dirname(script)
         cwd = os.getcwd()
         logger.info("Redémarrage avec :")
-        logger.info("  python : %s", python)
-        logger.info("  script : %s", script)
-        logger.info("  cwd    : %s", cwd)
+        logger.info(f"  python : {python}")
+        logger.info(f"  script : {script}")
+        logger.info(f"  cwd    : {cwd}")
 
-        if QSystemTrayIcon.isSystemTrayAvailable():
-            tray = QSystemTrayIcon(self)
-            tray.setIcon(self.windowIcon())
-            tray.show()
-            tray.showMessage(
-                "Application",
-                "Redémarrage de l'application…",
-                QSystemTrayIcon.Information,
-                1000,
-            )
-        else:
-            self.statusBar().showMessage(
-                "Redémarrage de l'application…",
-                3000,
-            )
+        # Place le cwd sur le dossier du script principal
+        os.chdir(script_dir)
 
-        os.chdir(os.path.dirname(script))
         try:
             if not os.path.exists(script):
                 raise FileNotFoundError(f"Script introuvable : {script}")
+            self.statusBar().showMessage("Redémarrage de l'application…", 3000)
             os.execv(python, [python, script])
         except Exception as e:
             logger.exception("Échec du redémarrage avec %s %s", python, script)
