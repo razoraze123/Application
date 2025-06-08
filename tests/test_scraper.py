@@ -54,16 +54,25 @@ def fake_pandas(monkeypatch):
 
 def test_scrap_produits_par_ids(monkeypatch, tmp_path, fake_pandas):
     driver = FakeDriver()
-    monkeypatch.setattr(scr, "_get_driver", lambda headless=False: driver)
+    captured = {}
+
+    def fake_driver(headless=False):
+        captured["headless"] = headless
+        return driver
+
+    monkeypatch.setattr(scr, "_get_driver", fake_driver)
     monkeypatch.setattr(scr, "_parse_price", lambda d: "9.99")
     monkeypatch.setattr(scr, "_get_variant_names", lambda d: ["Red", "Blue"])
     monkeypatch.setattr("time.sleep", lambda x: None)
     id_map = {"A1": "http://example.com"}
-    exit_code = scr.scrap_produits_par_ids(id_map, ["A1"], str(tmp_path))
+    exit_code = scr.scrap_produits_par_ids(
+        id_map, ["A1"], str(tmp_path), headless=True
+    )
 
     assert exit_code == 0
     assert driver.visited == ["http://example.com"]
     assert driver.quit_called
+    assert captured["headless"] is True
     assert isinstance(fake_pandas.captured, list)
     assert fake_pandas.captured[0]["Type"] == "variable"
     assert fake_pandas.df.saved_path.endswith("woocommerce_mix.xlsx")
@@ -71,7 +80,13 @@ def test_scrap_produits_par_ids(monkeypatch, tmp_path, fake_pandas):
 
 def test_scrap_fiches_concurrents(monkeypatch, tmp_path, fake_pandas):
     driver = FakeDriver()
-    monkeypatch.setattr(scr, "_get_driver", lambda headless=False: driver)
+    captured = {}
+
+    def fake_driver(headless=False):
+        captured["headless"] = headless
+        return driver
+
+    monkeypatch.setattr(scr, "_get_driver", fake_driver)
     monkeypatch.setattr(scr, "_extract_title", lambda soup: "My Title")
     monkeypatch.setattr(
         scr, "_find_description_div", lambda soup: soup.find("div")
@@ -79,11 +94,14 @@ def test_scrap_fiches_concurrents(monkeypatch, tmp_path, fake_pandas):
     monkeypatch.setattr(scr, "_convert_links", lambda div: None)
     monkeypatch.setattr("time.sleep", lambda x: None)
     id_map = {"A1": "http://example.com"}
-    exit_code = scr.scrap_fiches_concurrents(id_map, ["A1"], str(tmp_path))
+    exit_code = scr.scrap_fiches_concurrents(
+        id_map, ["A1"], str(tmp_path), headless=True
+    )
 
     assert exit_code == 0
     assert driver.visited == ["http://example.com"]
     assert driver.quit_called
     fc_dir = tmp_path / "fiches_concurrents"
     assert fc_dir.exists()
+    assert captured["headless"] is True
     assert isinstance(fake_pandas.captured, list)

@@ -116,13 +116,22 @@ class ScrapingWorker(QThread):
         actions: dict,
         batch_size: int,
         session_paths: dict,
+        headless: bool = False,
     ) -> None:
+        """Run scraping operations in a background thread.
+
+        Parameters
+        ----------
+        headless : bool, optional
+            Launch Selenium in headless mode when ``True``.
+        """
         super().__init__()
         self.links_file = links_file
         self.ids = ids
         self.actions = actions
         self.batch_size = batch_size
         self.session_paths = session_paths
+        self.headless = headless
 
         self.emitter = EmittingStream()
         self.emitter.text_written.connect(self.handle_output)
@@ -206,12 +215,22 @@ class ScrapingWorker(QThread):
                 self.current_action = "variantes"
                 var_dir = self.session_paths["variantes"]
                 os.makedirs(var_dir, exist_ok=True)
-                scrap_produits_par_ids(id_url_map, self.ids, var_dir)
+                scrap_produits_par_ids(
+                    id_url_map,
+                    self.ids,
+                    var_dir,
+                    headless=self.headless,
+                )
             if self.actions.get("fiches"):
                 self.current_action = "fiches"
                 fc_dir = self.session_paths["fiches"]
                 os.makedirs(fc_dir, exist_ok=True)
-                scrap_fiches_concurrents(id_url_map, self.ids, fc_dir)
+                scrap_fiches_concurrents(
+                    id_url_map,
+                    self.ids,
+                    fc_dir,
+                    headless=self.headless,
+                )
             if self.actions.get("export"):
                 self.current_action = "export"
                 fc_dir = self.session_paths["fiches"]
@@ -597,6 +616,7 @@ La barre de progression et le minuteur indiquent l'avancement."""
             actions,
             batch_size,
             self.paths,
+            headless=self.cb_headless.isChecked(),
         )
         self.worker.progress.connect(self.update_progress)
         self.worker.action_progress.connect(self.update_action_status)
