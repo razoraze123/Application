@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QPushButton,
 )
-from PySide6.QtCore import QUrl, QObject, Slot, Signal
+from PySide6.QtCore import QUrl, QObject, Slot
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 
@@ -29,85 +29,60 @@ except ModuleNotFoundError:  # Fallback when launched from parent directory
 
 
 BROWSER_SCRIPT = """
-(function() {
-    function setupChannel(callback) {
-        function init() {
-            new QWebChannel(qt.webChannelTransport, function(channel) {
-                window.qt = channel.objects.bridge;
-                callback();
-            });
+new QWebChannel(qt.webChannelTransport, function (channel) {
+  const pyReceiver = channel.objects.qt;
+
+  function getCssSelector(el) {
+    const path = [];
+    while (el.nodeType === Node.ELEMENT_NODE) {
+      let selector = el.nodeName.toLowerCase();
+      if (el.id) {
+        selector += `#${el.id}`;
+        path.unshift(selector);
+        break;
+      }
+      if (el.className) {
+        const classes = el.className.trim().split(/\s+/);
+        if (classes.length) selector += '.' + classes.join('.');
+      }
+      const parent = el.parentNode;
+      if (parent) {
+        const siblings = Array.from(parent.children).filter(e => e.tagName === el.tagName);
+        if (siblings.length > 1) {
+          const index = siblings.indexOf(el) + 1;
+          selector += `:nth-of-type(${index})`;
         }
-        if (typeof QWebChannel === 'undefined') {
-            var s = document.createElement('script');
-            s.src = 'qrc:///qtwebchannel/qwebchannel.js';
-            s.onload = init;
-            document.head.appendChild(s);
-        } else {
-            init();
-        }
+      }
+      path.unshift(selector);
+      el = el.parentNode;
     }
+    return path.join(' > ');
+  }
 
-    setupChannel(function() {
-        function getCssSelector(el) {
-            if (!(el instanceof Element)) return '';
-            const path = [];
-            while (el.nodeType === Node.ELEMENT_NODE) {
-                let selector = el.nodeName.toLowerCase();
-                if (el.id) {
-                    selector += '#' + el.id;
-                    path.unshift(selector);
-                    break;
-                }
-                if (el.className) {
-                    const classes = el.className.trim().split(/\s+/)
-                        .filter(cls => !cls.startsWith('active') && !cls.startsWith('hover'));
-                    if (classes.length) selector += '.' + classes.join('.');
-                }
-                const parent = el.parentNode;
-                if (parent) {
-                    const siblings = Array.from(parent.children)
-                        .filter(e => e.tagName === el.tagName);
-                    if (siblings.length > 1) {
-                        const index = siblings.indexOf(el) + 1;
-                        selector += ':nth-of-type(' + index + ')';
-                    }
-                }
-                path.unshift(selector);
-                el = el.parentNode;
-            }
-            return path.join(' > ');
-        }
-
-        document.body.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const el = e.target;
-            const selector = getCssSelector(el);
-            const text = el.innerText.trim();
-            el.style.outline = '2px solid red';
-            setTimeout(() => el.style.outline = '', 800);
-            if (window.qt && qt.receiveElementInfo) {
-                qt.receiveElementInfo(selector, text);
-            } else {
-                console.log('Selector:', selector, 'Text:', text);
-            }
-        }, {capture: true});
-    });
-})();
+  document.body.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.target;
+    const selector = getCssSelector(el);
+    const text = el.innerText.trim();
+    el.style.outline = '2px solid red';
+    setTimeout(() => (el.style.outline = ''), 800);
+    pyReceiver.receiveElementInfo(selector, text);
+  }, { capture: true });
+});
 """
 
 
-class ClickBridge(QObject):
-    """Bridge object receiving click information from JS."""
+class ElementReceiver(QObject):
+    """Exposed object receiving element information from JS."""
 
-    def __init__(self) -> None:
-        super().__init__()
-
-    elementSelected = Signal(str, str)
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
 
     @Slot(str, str)
     def receiveElementInfo(self, selector: str, text: str) -> None:
-        self.elementSelected.emit(selector, text)
+        if self.parent():
+            self.parent().update_preview(selector, text)
 
 
 class ScraperDemo(QWidget):
@@ -142,11 +117,10 @@ class ScraperDemo(QWidget):
         self.add_btn.clicked.connect(self.add_mapping)
 
         self.channel = QWebChannel()
-        self.bridge = ClickBridge()
-        self.channel.registerObject("bridge", self.bridge)
+        self.receiver = ElementReceiver(self)
+        self.channel.registerObject("qt", self.receiver)
         self.web_view.page().setWebChannel(self.channel)
         self.web_view.loadFinished.connect(self.inject_script)
-        self.bridge.elementSelected.connect(self.update_preview)
 
         url_row = QHBoxLayout()
         url_row.addWidget(QLabel("URL:"))
@@ -225,6 +199,11 @@ class ScraperDemo(QWidget):
     # ------------------------------------------------------------------
     def inject_script(self) -> None:
         """Inject the click capture script into the loaded page."""
+        try:
+            with open("qwebchannel.js", "r", encoding="utf-8") as f:
+                self.web_view.page().runJavaScript(f.read())
+        except Exception:
+            pass
         self.web_view.page().runJavaScript(BROWSER_SCRIPT)
 
     # ------------------------------------------------------------------
