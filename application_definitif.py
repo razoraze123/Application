@@ -371,10 +371,27 @@ class MainWindow(QMainWindow):
         self.toggle_log_btn = QToolButton()
         self.toggle_log_btn.setIcon(qta.icon("fa5s.book"))
         self.toggle_log_btn.setText("Afficher le journal")
-        self.toggle_log_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.toggle_log_btn.setToolButtonStyle(
+            Qt.ToolButtonTextBesideIcon
+        )
         self.toggle_log_btn.setCheckable(True)
         self.toggle_log_btn.clicked.connect(self.toggle_log)
-        layout.addWidget(self.toggle_log_btn)
+
+        self.copy_log_btn = QPushButton(qta.icon("fa5s.copy"), "")
+        self.copy_log_btn.setToolTip("Copier le journal")
+        self.copy_log_btn.clicked.connect(self.copy_log)
+
+        self.clear_log_btn = QPushButton(qta.icon("fa5s.trash"), "")
+        self.clear_log_btn.setToolTip("Effacer le journal")
+        self.clear_log_btn.clicked.connect(self.clear_log)
+
+        log_btn_layout = QHBoxLayout()
+        log_btn_layout.setContentsMargins(0, 0, 0, 0)
+        log_btn_layout.setSpacing(2)
+        log_btn_layout.addWidget(self.toggle_log_btn)
+        log_btn_layout.addWidget(self.copy_log_btn)
+        log_btn_layout.addWidget(self.clear_log_btn)
+        layout.addLayout(log_btn_layout)
 
         self.log_area = QTextEdit()
         self.log_area.setObjectName("logArea")
@@ -628,6 +645,13 @@ La barre de progression et le minuteur indiquent l'avancement."""
 
     def toggle_log(self, checked: bool) -> None:
         self.log_area.setVisible(checked)
+
+    def copy_log(self) -> None:
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.log_area.toPlainText())
+
+    def clear_log(self) -> None:
+        self.log_area.clear()
 
     def append_log(self, text: str) -> None:
         self.log_area.moveCursor(QTextCursor.End)
