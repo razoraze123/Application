@@ -1,203 +1,151 @@
 # -*- coding: utf-8 -*-
-"""Interactive scraper interface using QWebEngineView and QWebChannel."""
+"""Simple interface to extract product descriptions from a local HTML file."""
 
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
+from typing import Any, Dict, List
 
-from PySide6.QtCore import QObject, QTimer, QUrl, Slot
 from PySide6.QtWidgets import (
     QApplication,
+    QWidget,
+    QVBoxLayout,
     QHBoxLayout,
+    QPushButton,
+    QTextBrowser,
+    QListWidget,
+    QListWidgetItem,
     QLabel,
     QLineEdit,
-    QPushButton,
     QTextEdit,
-    QVBoxLayout,
-    QWidget,
+    QFileDialog,
 )
-from PySide6.QtWebChannel import QWebChannel
-from PySide6.QtWebEngineCore import QWebEngineScript
-from PySide6.QtWebEngineWidgets import QWebEngineView
+
+from bs4 import BeautifulSoup
 
 
-# Disable the sandbox to avoid restrictions in some environments
-os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
+# ---------------------------------------------------------------------------
 
-
-BROWSER_SCRIPT = r"""
-console.log('JS inject\u00e9');
-new QWebChannel(qt.webChannelTransport, function (channel) {
-  console.log('WebChannel ready', channel.objects);
-  const pyReceiver = channel.objects.qt;
-  if (!pyReceiver) {
-    console.error('pyReceiver non d\u00e9fini');
-    return;
-  }
-
-  function getCssSelector(el) {
-    const path = [];
-    while (el.nodeType === Node.ELEMENT_NODE) {
-      let selector = el.nodeName.toLowerCase();
-      if (el.id) {
-        selector += `#${el.id}`;
-        path.unshift(selector);
-        break;
-      }
-      if (el.className) {
-  const classes = el.className.trim().split(/\s+/);
-        if (classes.length) selector += '.' + classes.join('.');
-      }
-      const parent = el.parentNode;
-      if (parent) {
-        const sibs = Array.from(parent.children).filter(
-          e => e.tagName === el.tagName
-        );
-        if (sibs.length > 1) {
-          const index = sibs.indexOf(el) + 1;
-          selector += `:nth-of-type(${index})`;
-        }
-      }
-      path.unshift(selector);
-      el = el.parentNode;
-    }
-    return path.join(' > ');
-  }
-
-  document.addEventListener(
-    'click',
-    function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const el = e.target;
-      const selector = getCssSelector(el);
-      const text = el.innerText.trim();
-      el.style.outline = '2px solid red';
-      setTimeout(() => (el.style.outline = ''), 800);
-      console.log('Element cliqu\u00e9', selector, text);
-      pyReceiver.receiveElementInfo(selector, text);
-    },
-    true
-  );
-});
-"""
-
-
-class ElementReceiver(QObject):
-    """Receive element information from the injected JS."""
-
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-
-    @Slot(str, str)
-    def receiveElementInfo(self, selector: str, text: str) -> None:
-        print(f"Received: {selector} -> {text}")
-        if self.parent():
-            self.parent().update_preview(selector, text)
+def build_css_selector(el: Any) -> str:
+    """Return a CSS selector for ``el`` by walking up the DOM tree."""
+    path: List[str] = []
+    while el and getattr(el, "name", None) and el.name != "[document]":
+        selector = el.name
+        el_id = el.get("id")
+        if el_id:
+            selector += f"#{el_id}"
+            path.insert(0, selector)
+            break
+        classes = el.get("class") or []
+        if classes:
+            selector += "." + ".".join(classes)
+        parent = getattr(el, "parent", None)
+        if parent:
+            siblings = [sib for sib in parent.find_all(el.name, recursive=False)]
+            if len(siblings) > 1:
+                index = siblings.index(el) + 1
+                selector += f":nth-of-type({index})"
+        path.insert(0, selector)
+        el = parent
+    return " > ".join(path)
 
 
 class ScraperWindow(QWidget):
-    """Main window integrating the browser and mapping helpers."""
+    """GUI to pick a description block from a static HTML file."""
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Scraper d\u00e9finitif")
+        self.setWindowTitle("Extraction description")
 
-        self.url_edit = QLineEdit()
-        self.load_btn = QPushButton("Charger")
-        self.inject_btn = QPushButton("Injecter script")
-
+        self.load_btn = QPushButton("Charger HTML local")
+        self.html_view = QTextBrowser()
+        self.blocks_list = QListWidget()
         self.selector_edit = QLineEdit()
         self.selector_edit.setReadOnly(True)
-        self.text_edit = QLineEdit()
-        self.text_edit.setReadOnly(True)
-
+        self.use_btn = QPushButton("Utiliser ce bloc")
+        self.result_edit = QTextEdit()
+        self.result_edit.setReadOnly(True)
         self.mapping_edit = QTextEdit()
-
-        self.web_view = QWebEngineView()
-        self._script_added = False
-
-        top_row = QHBoxLayout()
-        top_row.addWidget(QLabel("URL:"))
-        top_row.addWidget(self.url_edit)
-        top_row.addWidget(self.load_btn)
-        top_row.addWidget(self.inject_btn)
-
-        info_row = QVBoxLayout()
-        info_row.addWidget(QLabel("S\u00e9lecteur:"))
-        info_row.addWidget(self.selector_edit)
-        info_row.addWidget(QLabel("Texte:"))
-        info_row.addWidget(self.text_edit)
-        info_row.addWidget(QLabel("Mapping JSON:"))
-        info_row.addWidget(self.mapping_edit)
+        self.mapping_edit.setReadOnly(True)
 
         layout = QVBoxLayout(self)
-        layout.addLayout(top_row)
-        layout.addLayout(info_row)
-        layout.addWidget(self.web_view)
+        layout.addWidget(self.load_btn)
+        layout.addWidget(QLabel("Contenu HTML:"))
+        layout.addWidget(self.html_view, 1)
+        layout.addWidget(QLabel("Blocs détectés:"))
+        layout.addWidget(self.blocks_list, 1)
+        layout.addWidget(QLabel("Sélecteur:"))
+        layout.addWidget(self.selector_edit)
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(self.use_btn)
+        layout.addLayout(btn_row)
+        layout.addWidget(QLabel("Texte extrait:"))
+        layout.addWidget(self.result_edit)
+        layout.addWidget(QLabel("Mapping JSON:"))
+        layout.addWidget(self.mapping_edit)
 
-        self.channel = QWebChannel()
-        self.receiver = ElementReceiver(self)
-        self.channel.registerObject("qt", self.receiver)
-        self.web_view.page().setWebChannel(self.channel)
+        self.load_btn.clicked.connect(self.load_html)
+        self.blocks_list.currentRowChanged.connect(self.show_candidate)
+        self.use_btn.clicked.connect(self.use_current_block)
 
-        self.load_btn.clicked.connect(self.load_page)
-        self.inject_btn.clicked.connect(self.inject_script)
-        self.web_view.loadFinished.connect(self.inject_script)
+        self._candidates: List[Dict[str, Any]] = []
 
-    # -------------------------------------------------------------
-    def load_page(self) -> None:
-        url = self.url_edit.text().strip()
-        if url:
-            self._script_added = False
-            self.web_view.load(QUrl(url))
-
-    # -------------------------------------------------------------
-    def inject_script(self) -> None:
-        if self._script_added:
+    # ------------------------------------------------------------------
+    def load_html(self) -> None:
+        """Open a local HTML file and parse candidate blocks."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Fichier HTML", "", "HTML (*.html *.htm)"
+        )
+        if not path:
             return
-        qwc_js = ""
-        try:
-            path = Path(__file__).resolve().parent / "qwebchannel.js"
-            qwc_js = path.read_text(encoding="utf-8")
-        except OSError:
-            pass
-        script = QWebEngineScript()
-        script.setWorldId(QWebEngineScript.MainWorld)
-        script.setInjectionPoint(QWebEngineScript.DocumentReady)
-        script.setRunsOnSubFrames(False)
-        script.setSourceCode("\n".join([qwc_js, BROWSER_SCRIPT]))
+        text = Path(path).read_text(encoding="utf-8", errors="ignore")
+        self.html_view.setHtml(text)
+        self._parse_candidates(text)
 
-        def do_insert() -> None:
-            self.web_view.page().scripts().insert(script)
-            self._script_added = True
+    # ------------------------------------------------------------------
+    def _parse_candidates(self, html: str) -> None:
+        soup = BeautifulSoup(html, "lxml")
+        tags = ["div", "p", "section", "article", "span"]
+        self.blocks_list.clear()
+        self._candidates.clear()
+        for tag in soup.find_all(tags):
+            txt = tag.get_text(" ", strip=True)
+            if len(txt) >= 100:
+                selector = build_css_selector(tag)
+                snippet = txt[:120] + ("..." if len(txt) > 120 else "")
+                self._candidates.append({"selector": selector, "text": txt})
+                self.blocks_list.addItem(QListWidgetItem(snippet))
 
-        QTimer.singleShot(100, do_insert)
+    # ------------------------------------------------------------------
+    def show_candidate(self, index: int) -> None:
+        if index < 0 or index >= len(self._candidates):
+            self.selector_edit.clear()
+            self.result_edit.clear()
+            return
+        cand = self._candidates[index]
+        self.selector_edit.setText(cand["selector"])
+        self.result_edit.setPlainText(cand["text"])
 
-    # -------------------------------------------------------------
-    def update_preview(self, selector: str, text: str) -> None:
-        self.selector_edit.setText(selector)
-        self.text_edit.setText(text)
-        field = selector.split(" > ")[-1].split("#")[0].split(".")[0]
-        try:
-            mapping = json.loads(self.mapping_edit.toPlainText() or "{}")
-        except Exception:
-            mapping = {}
-        mapping[field] = selector
+    # ------------------------------------------------------------------
+    def use_current_block(self) -> None:
+        idx = self.blocks_list.currentRow()
+        if idx < 0 or idx >= len(self._candidates):
+            return
+        selector = self._candidates[idx]["selector"]
+        mapping = {"description": selector}
         self.mapping_edit.setPlainText(
             json.dumps(mapping, indent=2, ensure_ascii=False)
         )
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover - manual execution
     app = QApplication([])
     win = ScraperWindow()
-    win.resize(900, 600)
+    win.resize(800, 600)
     win.show()
     app.exec()
 
 
-if __name__ == "__main__":  # pragma: no cover - manual execution
+if __name__ == "__main__":  # pragma: no cover - manual launch
     main()
