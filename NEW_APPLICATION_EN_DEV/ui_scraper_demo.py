@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QUrl, QObject, Slot
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
+from pathlib import Path
 
 import sys
 import os
@@ -200,7 +201,8 @@ class ScraperDemo(QWidget):
     def inject_script(self) -> None:
         """Inject the click capture script into the loaded page."""
         try:
-            with open("qwebchannel.js", "r", encoding="utf-8") as f:
+            path = Path(__file__).resolve().parents[1] / "qwebchannel.js"
+            with open(path, "r", encoding="utf-8") as f:
                 self.web_view.page().runJavaScript(f.read())
         except Exception:
             pass
