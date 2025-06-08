@@ -35,6 +35,10 @@ except ModuleNotFoundError:  # Fallback when launched from parent directory
 
 
 BROWSER_SCRIPT = """
+const CLICK_CAPTURE_DEBUG = true;
+if (CLICK_CAPTURE_DEBUG) {
+  console.log('Click capture script injected');
+}
 new QWebChannel(qt.webChannelTransport, function (channel) {
   const pyReceiver = channel.objects.qt;
 
