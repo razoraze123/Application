@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     if not ids_selectionnes:
         logger.warning("\u26d4 Aucun ID valide fourni. Arr\u00eat du script.")
-        exit()
+        sys.exit()
 
     if input(
         "\u25b6\ufe0f Lancer le scraping des variantes ? (oui/non): "
