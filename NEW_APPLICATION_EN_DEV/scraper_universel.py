@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 from pathlib import Path
@@ -90,4 +91,33 @@ def scrap_fiche_generique(url: str,
             logger.warning("Champ manquant: %s via %s", field, selector)
         data[field] = value
     return data
+
+
+def main() -> None:
+    """Simple command line interface for :func:`scrap_fiche_generique`."""
+    parser = argparse.ArgumentParser(description="Universal scraper")
+    parser.add_argument("--url", required=True, help="URL of the page")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--mapping-file",
+        help="JSON or YAML mapping file",
+    )
+    group.add_argument(
+        "--mapping",
+        help="Mapping JSON string",
+    )
+
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+
+    mapping = json.loads(args.mapping) if args.mapping else None
+    data = scrap_fiche_generique(
+        args.url, mapping, mapping_file=args.mapping_file
+    )
+    print(json.dumps(data, ensure_ascii=False))
+
+
+if __name__ == "__main__":  # pragma: no cover - CLI
+    main()
 
