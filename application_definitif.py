@@ -3,6 +3,7 @@ import re
 import sys
 import time
 import math
+import traceback
 
 from PySide6.QtCore import (
     Signal,
@@ -1001,19 +1002,28 @@ La barre de progression et le minuteur indiquent l'avancement."""
             tray.show()
             tray.showMessage(
                 "Application",
-                "Redémarrage…",
+                "Redémarrage de l'application…",
                 QSystemTrayIcon.Information,
                 1000,
             )
         else:
-            self.statusBar().showMessage("Redémarrage…", 3000)
+            self.statusBar().showMessage(
+                "Redémarrage de l'application…",
+                3000,
+            )
         python = sys.executable
         script = os.path.abspath(__file__)
+        logger.info("Redémarrage avec %s %s", python, script)
         try:
             os.execv(python, [python, script])
-        except Exception as exc:
+        except Exception:
             logger.exception(
                 "Échec du redémarrage avec %s %s", python, script
+            )
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                traceback.format_exc(),
             )
 
 
